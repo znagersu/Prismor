@@ -680,6 +680,8 @@ public:
         if (freqHz <= 10.0f)
             return 1.0f;
 
+        // Architectural Safeguard: Clamp resonance to mathematically stable limits
+        const float safeRes = juce::jlimit(0.0f, 0.94f, resonance);
         const float octDiff = std::log2(freqHz / std::max(20.0f, cutoffHz));
         const float bandwidth = std::max(0.15f, 0.2f + width * 2.0f);
         float gain = 1.0f;
@@ -694,7 +696,7 @@ public:
                     gain = 1.0f / std::sqrt(1.0f + std::pow(ratio, std::min(20.0f, 4.0f / bandwidth)));
                 }
                 const float resBell = std::exp(-0.5f * std::pow(octDiff / (0.28f * bandwidth), 2.0f));
-                gain += resonance * 2.2f * resBell * std::min(1.0f, gain * 2.0f);
+                gain += safeRes * 2.2f * resBell * std::min(1.0f, gain * 2.0f);
                 break;
             }
             case 1: // SVF Lowpass 24dB/oct
@@ -705,7 +707,7 @@ public:
                     gain = 1.0f / (1.0f + std::pow(ratio, std::min(24.0f, 8.0f / bandwidth)));
                 }
                 const float resBell = std::exp(-0.5f * std::pow(octDiff / (0.20f * bandwidth), 2.0f));
-                gain += resonance * 2.8f * resBell * std::min(1.0f, gain * 2.5f);
+                gain += safeRes * 2.6f * resBell * std::min(1.0f, gain * 2.2f);
                 break;
             }
             case 2: // Crude Low Pass (Brickwall Spectral Slope)
@@ -716,7 +718,7 @@ public:
                     gain = std::exp(-slope * slope * 2.8f);
                 }
                 const float resBell = std::exp(-0.5f * std::pow((octDiff + 0.04f) / 0.14f, 2.0f));
-                gain += resonance * 2.6f * resBell;
+                gain += safeRes * 2.4f * resBell;
                 break;
             }
             case 3: // SVF Highpass 24dB/oct
@@ -724,7 +726,7 @@ public:
                 const float ratio = std::min(64.0f, std::max(20.0f, cutoffHz) / freqHz);
                 gain = 1.0f / (1.0f + std::pow(ratio, std::min(24.0f, 6.0f / bandwidth)));
                 const float resBell = std::exp(-0.5f * std::pow(octDiff / (0.22f * bandwidth), 2.0f));
-                gain += resonance * 2.2f * resBell * std::min(1.0f, gain * 2.0f);
+                gain += safeRes * 2.2f * resBell * std::min(1.0f, gain * 2.0f);
                 break;
             }
             case 4: // Bandpass SVF
@@ -732,7 +734,7 @@ public:
                 const float bw = 0.25f + width * 1.4f;
                 gain = std::exp(-0.5f * std::pow(octDiff / bw, 2.0f));
                 const float resPeak = std::exp(-0.5f * std::pow(octDiff / (bw * 0.35f), 2.0f));
-                gain += resonance * 2.0f * resPeak;
+                gain += safeRes * 1.9f * resPeak;
                 break;
             }
             case 5: // Spectral Comb Filter (Protected against NaN)
@@ -741,7 +743,7 @@ public:
                 const float phase = (freqHz / combFreq) * juce::MathConstants<float>::pi;
                 const float comb = std::max(0.0f, 0.5f + 0.5f * std::cos(phase));
                 const float depth = 0.45f + 0.55f * (1.0f - width * 0.5f);
-                gain = (1.0f - depth) + depth * std::pow(comb, 1.0f + resonance * 3.0f) * (1.0f + resonance * 1.4f);
+                gain = (1.0f - depth) + depth * std::pow(comb, 1.0f + safeRes * 2.6f) * (1.0f + safeRes * 1.2f);
                 break;
             }
             case 6: // Vox / Formant Filter (5-Vowel A-E-I-O-U Morph + Formant Shift)
@@ -762,12 +764,12 @@ public:
                 const float f2 = (vF2[idx0] + frac * (vF2[idx1] - vF2[idx0])) * formantShift;
                 const float f3 = (vF3[idx0] + frac * (vF3[idx1] - vF3[idx0])) * formantShift;
 
-                const float q = 0.11f + (1.0f - resonance * 0.72f) * 0.22f;
+                const float q = 0.11f + (1.0f - safeRes * 0.72f) * 0.22f;
                 const float p1 = std::exp(-0.5f * std::pow(std::log2(freqHz / f1) / q, 2.0f));
                 const float p2 = 0.90f * std::exp(-0.5f * std::pow(std::log2(freqHz / f2) / q, 2.0f));
                 const float p3 = 0.65f * std::exp(-0.5f * std::pow(std::log2(freqHz / f3) / (q * 1.15f), 2.0f));
                 const float baseRolloff = 1.0f / (1.0f + std::pow(freqHz / 5200.0f, 2.0f));
-                gain = (0.08f + (1.35f + resonance * 1.75f) * (p1 + p2 + p3)) * (0.35f + 0.65f * baseRolloff);
+                gain = (0.08f + (1.35f + safeRes * 1.60f) * (p1 + p2 + p3)) * (0.35f + 0.65f * baseRolloff);
                 break;
             }
             case 7: // Custom Shape (Linked to Graphical Articulator's CUSTOM Curve)
@@ -776,7 +778,7 @@ public:
                     (std::log2(freqHz / std::max(25.0f, cutoffHz * 0.12f))) / (4.5f + width * 5.0f));
                 gain = customShape.evaluateLUT(normFreq);
                 const float resBell = std::exp(-0.5f * std::pow(octDiff / 0.25f, 2.0f));
-                gain += resonance * 1.6f * resBell * gain;
+                gain += safeRes * 1.5f * resBell * gain;
                 break;
             }
             case 8: // Vocoder Band-Bank Filter (16-Channel Robotic Vocoder Spectral Bank)
@@ -790,13 +792,13 @@ public:
                 // Comb-like narrow bandpass channels + robotic formant envelope (Protected against NaN)
                 const float bandPhase = logBandPos * juce::MathConstants<float>::twoPi;
                 const float chBase = std::max(0.0f, 0.5f + 0.5f * std::cos(bandPhase));
-                const float channelTransmission = std::pow(chBase, 1.8f + resonance * 8.0f);
+                const float channelTransmission = std::pow(chBase, 1.8f + safeRes * 7.5f);
 
                 // Robotic carrier formant contour
                 const float voxEnv = std::exp(-0.5f * std::pow(std::log2(shiftedFreq / 520.0f) / 1.4f, 2.0f))
                                    + 0.85f * std::exp(-0.5f * std::pow(std::log2(shiftedFreq / 1950.0f) / 1.1f, 2.0f));
-                const float bandFloor = 0.04f * (1.0f - resonance * 0.85f);
-                gain = (bandFloor + channelTransmission * (1.25f + resonance * 1.65f)) * juce::jlimit(0.15f, 1.35f, voxEnv);
+                const float bandFloor = 0.04f * (1.0f - safeRes * 0.85f);
+                gain = (bandFloor + channelTransmission * (1.20f + safeRes * 1.50f)) * juce::jlimit(0.15f, 1.35f, voxEnv);
                 break;
             }
             case 9: // Talkbox Mode (Expressive Vowel Articulation + Throat/Tube Driver Emphasis)
@@ -812,7 +814,7 @@ public:
                 const float f3 = (2150.0f + 780.0f * morph) * throatScale;
                 const float throatChest = 195.0f * throatScale;
 
-                const float q = 0.13f + (1.0f - resonance * 0.70f) * 0.18f;
+                const float q = 0.13f + (1.0f - safeRes * 0.70f) * 0.18f;
                 const float pChest = 0.55f * std::exp(-0.5f * std::pow(std::log2(freqHz / throatChest) / 0.35f, 2.0f));
                 const float p1 = 1.15f * std::exp(-0.5f * std::pow(std::log2(freqHz / f1) / q, 2.0f));
                 const float p2 = 1.10f * std::exp(-0.5f * std::pow(std::log2(freqHz / f2) / (q * 0.9f), 2.0f));
@@ -822,7 +824,7 @@ public:
                 const float driverPresence = 1.0f + 0.45f * std::exp(-0.5f * std::pow(std::log2(freqHz / 1850.0f) / 0.85f, 2.0f));
                 const float tubeRolloff = 1.0f / (1.0f + std::pow(freqHz / 5400.0f, 3.2f));
 
-                gain = (0.06f + (1.20f + resonance * 1.80f) * (pChest + p1 + p2 + p3)) * driverPresence * tubeRolloff;
+                gain = (0.06f + (1.15f + safeRes * 1.65f) * (pChest + p1 + p2 + p3)) * driverPresence * tubeRolloff;
                 break;
             }
         }
@@ -830,7 +832,7 @@ public:
         if (std::isnan(gain) || std::isinf(gain))
             gain = 1.0f;
 
-        return juce::jlimit(0.0f, 3.2f, gain);
+        return juce::jlimit(0.0f, 2.4f, gain);
     }
 
     void noteOn(int midiNote, float velocity, const SynthParameters& params)
@@ -979,7 +981,16 @@ public:
         activeVoicesCount = std::max(1, activeVoicesCount);
 
         const float targetPreFxScale = 1.0f / std::sqrt(static_cast<float>(activeVoicesCount));
-        smoothedPolyHeadroom.setTargetValue(targetPreFxScale);
+        if (targetPreFxScale < smoothedPolyHeadroom.getCurrentValue())
+        {
+            // Fast attack: immediately clamp down pre-FX headroom when new voices are struck
+            smoothedPolyHeadroom.setCurrentAndTargetValue(targetPreFxScale);
+        }
+        else
+        {
+            // Smooth release: slowly ramp headroom back up over 20-30ms when voices release
+            smoothedPolyHeadroom.setTargetValue(targetPreFxScale);
+        }
 
         for (int i = 0; i < numSamples; ++i)
         {
@@ -1043,8 +1054,8 @@ private:
         }
 
         Voice* chosen = nullptr;
-        double oldestAge = -1.0;
 
+        // Tier 1: Prefer any completely inactive voice
         for (int i = 0; i < effectiveMaxVoices; ++i)
         {
             auto& v = voices[static_cast<size_t>(i)];
@@ -1053,10 +1064,35 @@ private:
                 chosen = &v;
                 break;
             }
-            if (v.noteAgeSeconds > oldestAge)
+        }
+
+        // Tier 2: Steal the oldest decaying release tail (preserves actively held notes!)
+        if (chosen == nullptr)
+        {
+            double oldestRelAge = -1.0;
+            for (int i = 0; i < effectiveMaxVoices; ++i)
             {
-                oldestAge = v.noteAgeSeconds;
-                chosen = &v;
+                auto& v = voices[static_cast<size_t>(i)];
+                if (v.releasing && v.noteAgeSeconds > oldestRelAge)
+                {
+                    oldestRelAge = v.noteAgeSeconds;
+                    chosen = &v;
+                }
+            }
+        }
+
+        // Tier 3: If all voices are currently held, steal the oldest held note
+        if (chosen == nullptr)
+        {
+            double oldestHeldAge = -1.0;
+            for (int i = 0; i < effectiveMaxVoices; ++i)
+            {
+                auto& v = voices[static_cast<size_t>(i)];
+                if (v.noteAgeSeconds > oldestHeldAge)
+                {
+                    oldestHeldAge = v.noteAgeSeconds;
+                    chosen = &v;
+                }
             }
         }
 
@@ -1468,7 +1504,7 @@ private:
 
     void updateVoiceSpectralTables(Voice& v, float dtSeconds, const SynthParameters& params,
                                    float uDetune, float uSpread, float uBlend, float uVoicesCount,
-                                   float mixA, float mixB)
+                                   float mixA, float mixB, int releasingCount = 0)
     {
         v.noteAgeSeconds += static_cast<double>(dtSeconds);
 
@@ -1498,7 +1534,9 @@ private:
         const float ahdsrRelSeconds = 0.015f + std::pow(juce::jlimit(0.01f, 1.0f, params.envRelease), 1.8f) * 2.4f;
         if (v.releasing)
         {
-            const float relRate = 1.0f / (ahdsrRelSeconds + blurTailSeconds);
+            // Aggressive release decay acceleration when overlapping tails stack up
+            const float relSpeedup = (releasingCount > 3) ? (1.0f + static_cast<float>(releasingCount - 3) * 0.75f) : 1.0f;
+            const float relRate = (1.0f / (ahdsrRelSeconds + blurTailSeconds)) * relSpeedup;
             v.releaseEnv -= dtSeconds * relRate;
             if (v.releaseEnv <= 0.0008f)
             {
@@ -1783,7 +1821,7 @@ private:
                 float mask = 1.0f;
                 if (params.filter1Enable && params.filter2Enable)
                 {
-                    const float serialG   = g1 * g2;
+                    const float serialG   = std::min(2.8f, g1 * g2);
                     const float parallelG = 0.5f * (g1 + g2);
                     mask = serialG * (1.0f - params.filterRouting) + parallelG * params.filterRouting;
                 }
@@ -1956,7 +1994,7 @@ private:
         }
 
         // Master voice gain (panning & volume envelope & calibrated polyphonic headroom)
-        v.targetGain = v.releaseEnv * volEnvMod * velScale * 0.26f;
+        v.targetGain = juce::jlimit(0.0f, 0.35f, v.releaseEnv * volEnvMod * velScale * 0.26f);
     }
 
     void renderChunk(float* outL, float* outR, int numSamples, const SynthParameters& params)
@@ -1986,6 +2024,14 @@ private:
         Voice* newestActiveVoice = nullptr;
         int activeCount = 0;
 
+        // Dynamic Release Acceleration: Count active decaying tails
+        int releasingCount = 0;
+        for (const auto& vCheck : voices)
+        {
+            if (vCheck.active && vCheck.releasing)
+                ++releasingCount;
+        }
+
         for (auto& v : voices)
         {
             if (!v.active)
@@ -1998,7 +2044,7 @@ private:
                 continue;
             }
 
-            updateVoiceSpectralTables(v, dtSeconds, params, uDet, uSpr, uBle, uVoi, mixA, mixB);
+            updateVoiceSpectralTables(v, dtSeconds, params, uDet, uSpr, uBle, uVoi, mixA, mixB, releasingCount);
             if (!v.active)
                 continue;
 
@@ -2123,8 +2169,12 @@ private:
                 if (std::isnan(sumVoiceL) || std::isinf(sumVoiceL)) sumVoiceL = 0.0f;
                 if (std::isnan(sumVoiceR) || std::isinf(sumVoiceR)) sumVoiceR = 0.0f;
 
-                outL[s] += sumVoiceL * curGain * panGainL;
-                outR[s] += sumVoiceR * curGain * panGainR;
+                const float voiceL = sumVoiceL * curGain * panGainL;
+                const float voiceR = sumVoiceR * curGain * panGainR;
+
+                // Per-Voice Pre-Summation Soft Clipper: guarantees each individual voice stays smoothly bounded <= 1.0
+                outL[s] += std::tanh(voiceL);
+                outR[s] += std::tanh(voiceR);
                 curGain += stepGain;
             }
 
@@ -2474,8 +2524,10 @@ private:
 
                 for (int i = 0; i < numSamples; ++i)
                 {
-                    const float inL = outL[i];
-                    const float inR = (numChannels > 1) ? outR[i] : inL;
+                    float inL = outL[i];
+                    float inR = (numChannels > 1) ? outR[i] : inL;
+                    if (std::isnan(inL) || std::isinf(inL)) inL = 0.0f;
+                    if (std::isnan(inR) || std::isinf(inR)) inR = 0.0f;
                     const float xL = inL * drive;
                     const float xR = inR * drive;
                     float wL = xL;
@@ -2513,6 +2565,9 @@ private:
                         wL = ((xL >= 0.0f) ? std::tanh(xL * 1.6f) : (std::atan(xL * 0.8f) * 0.7f)) * comp * 1.2f;
                         wR = ((xR >= 0.0f) ? std::tanh(xR * 1.6f) : (std::atan(xR * 0.8f) * 0.7f)) * comp * 1.2f;
                     }
+
+                    wL = juce::jlimit(-1.5f, 1.5f, wL);
+                    wR = juce::jlimit(-1.5f, 1.5f, wR);
 
                     distToneStateL += toneCoeff * (wL - distToneStateL);
                     distToneStateR += toneCoeff * (wR - distToneStateR);
@@ -2642,7 +2697,7 @@ private:
                 const int dSampL = juce::jlimit(32, MAX_DELAY_SAMPLES - 4, static_cast<int>(delaySecL * static_cast<float>(sampleRate)));
                 const int dSampR = juce::jlimit(32, MAX_DELAY_SAMPLES - 4, static_cast<int>(delaySecR * static_cast<float>(sampleRate)));
 
-                const float fb = juce::jlimit(0.0f, 0.90f, params.delayFeedback);
+                const float fb = juce::jlimit(0.0f, 0.86f, params.delayFeedback);
                 const float pp = juce::jlimit(0.0f, 1.0f, params.delayPingPong);
                 const float damp = 0.08f + params.delayFilter * 0.85f;
                 const float mix = juce::jlimit(0.0f, 1.0f, params.delayMix);
@@ -2652,11 +2707,15 @@ private:
                     const int readL = (delayWritePos - dSampL + MAX_DELAY_SAMPLES) % MAX_DELAY_SAMPLES;
                     const int readR = (delayWritePos - dSampR + MAX_DELAY_SAMPLES) % MAX_DELAY_SAMPLES;
 
-                    const float tapL = delayBufL[static_cast<size_t>(readL)];
-                    const float tapR = delayBufR[static_cast<size_t>(readR)];
+                    float tapL = delayBufL[static_cast<size_t>(readL)];
+                    float tapR = delayBufR[static_cast<size_t>(readR)];
+                    if (std::isnan(tapL) || std::isinf(tapL)) tapL = 0.0f;
+                    if (std::isnan(tapR) || std::isinf(tapR)) tapR = 0.0f;
 
                     delayLpStateL += damp * (tapL - delayLpStateL);
                     delayLpStateR += damp * (tapR - delayLpStateR);
+                    if (std::isnan(delayLpStateL) || std::isinf(delayLpStateL)) delayLpStateL = 0.0f;
+                    if (std::isnan(delayLpStateR) || std::isinf(delayLpStateR)) delayLpStateR = 0.0f;
 
                     const float inL = outL[i];
                     const float inR = (numChannels > 1) ? outR[i] : inL;
@@ -2664,8 +2723,8 @@ private:
                     const float fbInL = delayLpStateL * (1.0f - pp * 0.7f) + delayLpStateR * (pp * 0.7f);
                     const float fbInR = delayLpStateR * (1.0f - pp * 0.7f) + delayLpStateL * (pp * 0.7f);
 
-                    delayBufL[static_cast<size_t>(delayWritePos)] = juce::jlimit(-2.0f, 2.0f, inL + fbInL * fb);
-                    delayBufR[static_cast<size_t>(delayWritePos)] = juce::jlimit(-2.0f, 2.0f, inR + fbInR * fb);
+                    delayBufL[static_cast<size_t>(delayWritePos)] = std::tanh((inL + fbInL * fb) * 0.75f) * 1.33f;
+                    delayBufR[static_cast<size_t>(delayWritePos)] = std::tanh((inR + fbInR * fb) * 0.75f) * 1.33f;
 
                     outL[i] = inL + delayLpStateL * mix;
                     if (numChannels > 1)
@@ -2682,7 +2741,7 @@ private:
                     break;
 
                 const float mix = juce::jlimit(0.0f, 1.0f, params.reverbMix);
-                const float fb = juce::jlimit(0.45f, 0.94f, 0.55f + params.reverbDecay * 0.39f);
+                const float fb = juce::jlimit(0.40f, 0.88f, 0.50f + params.reverbDecay * 0.38f);
                 const float damp = 0.12f + (1.0f - params.reverbDamping) * 0.75f;
                 const float shimmerAmt = params.reverbShimmer * 0.32f;
                 const int preDelaySamples = juce::jlimit(1, 4094, static_cast<int>(params.reverbPreDelay * 0.085f * static_cast<float>(sampleRate)));
@@ -2712,10 +2771,12 @@ private:
                         const float yR = bufR[static_cast<size_t>(pos)];
                         lpL += damp * (yL - lpL);
                         lpR += damp * (yR - lpR);
+                        if (std::isnan(lpL) || std::isinf(lpL)) lpL = 0.0f;
+                        if (std::isnan(lpR) || std::isinf(lpR)) lpR = 0.0f;
                         const float shimL = (std::abs(lpL) - 0.1f * lpL) * shimmerAmt;
                         const float shimR = (std::abs(lpR) - 0.1f * lpR) * shimmerAmt;
-                        bufL[static_cast<size_t>(pos)] = juce::jlimit(-2.0f, 2.0f, preL * 0.25f + (lpL + shimL) * fb);
-                        bufR[static_cast<size_t>(pos)] = juce::jlimit(-2.0f, 2.0f, preR * 0.25f + (lpR + shimR) * fb);
+                        bufL[static_cast<size_t>(pos)] = std::tanh((preL * 0.25f + (lpL + shimL) * fb) * 0.75f) * 1.33f;
+                        bufR[static_cast<size_t>(pos)] = std::tanh((preR * 0.25f + (lpR + shimR) * fb) * 0.75f) * 1.33f;
                         pos = (pos + 1) % len;
                         sumL += yL;
                         sumR += yR;
@@ -2994,7 +3055,7 @@ private:
                 const float mix = juce::jlimit(0.0f, 1.0f, params.flangerMix);
                 const float rateInc = (params.flangerRate * invSampleRate) * juce::MathConstants<float>::twoPi;
                 const float depth = juce::jlimit(0.0f, 1.0f, params.flangerDepth);
-                const float fb = juce::jlimit(-0.92f, 0.92f, params.flangerFeedback);
+                const float fb = juce::jlimit(-0.86f, 0.86f, params.flangerFeedback);
                 const float manual = juce::jlimit(0.0f, 1.0f, params.flangerManual);
 
                 // Flanger delay range: 0.2ms to 8.5ms
@@ -3024,8 +3085,10 @@ private:
                         lfoR = std::round(lfoR * 8.0f) / 8.0f;
                     }
 
-                    flangerBufL[static_cast<size_t>(flangerWritePos)] = juce::jlimit(-2.0f, 2.0f, inL + flangerFbL * fb);
-                    flangerBufR[static_cast<size_t>(flangerWritePos)] = juce::jlimit(-2.0f, 2.0f, inR + flangerFbR * fb);
+                    const float fbInL = inL + flangerFbL * fb;
+                    const float fbInR = inR + flangerFbR * fb;
+                    flangerBufL[static_cast<size_t>(flangerWritePos)] = std::tanh(fbInL * 0.75f) * 1.33f;
+                    flangerBufR[static_cast<size_t>(flangerWritePos)] = std::tanh(fbInR * 0.75f) * 1.33f;
 
                     auto readFlangeTap = [&](const std::array<float, FLANGER_BUFFER_SIZE>& buf, float delaySamples) -> float
                     {
@@ -3038,8 +3101,10 @@ private:
                         return buf[static_cast<size_t>(r0)] * (1.0f - frac) + buf[static_cast<size_t>(r1)] * frac;
                     };
 
-                    const float tapL = readFlangeTap(flangerBufL, minDelaySamp + lfoL * sweepSamp);
-                    const float tapR = readFlangeTap(flangerBufR, minDelaySamp + lfoR * sweepSamp);
+                    float tapL = readFlangeTap(flangerBufL, minDelaySamp + lfoL * sweepSamp);
+                    float tapR = readFlangeTap(flangerBufR, minDelaySamp + lfoR * sweepSamp);
+                    if (std::isnan(tapL) || std::isinf(tapL)) tapL = 0.0f;
+                    if (std::isnan(tapR) || std::isinf(tapR)) tapR = 0.0f;
                     flangerFbL = tapL;
                     flangerFbR = tapR;
 
