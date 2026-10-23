@@ -144,15 +144,22 @@ void PrismorAudioProcessorEditor::UpdateCheckerThread::run()
             {
                 const juce::String remoteTag = json["tag_name"].toString();
                 const juce::String currentVer = ProjectInfo::versionString;
+                std::cout << "[PrismorUpdateChecker] Remote Release: " << remoteTag.toStdString()
+                          << " | Installed Version: " << currentVer.toStdString() << std::endl;
 
                 if (isRemoteVersionNewer(remoteTag, currentVer))
                 {
+                    std::cout << "[PrismorUpdateChecker] Newer version detected! Triggering UI update..." << std::endl;
                     if (callback && !threadShouldExit())
                     {
                         juce::MessageManager::callAsync([cb = callback, remoteTag] {
                             cb(remoteTag);
                         });
                     }
+                }
+                else
+                {
+                    std::cout << "[PrismorUpdateChecker] Client is up-to-date." << std::endl;
                 }
             }
         }
@@ -1362,14 +1369,15 @@ void PrismorAudioProcessorEditor::timerCallback()
             }
         };
 
-        if (screenshotFrameCounter == 18 && exportPath.isNotEmpty())
+        const int snapFrame = juce::SystemStats::getEnvironmentVariable("PRISMOR_EXPORT_FRAME", "22").getIntValue();
+        if (screenshotFrameCounter == snapFrame - 4 && exportPath.isNotEmpty())
         {
             setActiveTab(0);
             setBottomCenterMode(0);
             visualizer3D.set2DViewMode(false);
             repaint();
         }
-        if (screenshotFrameCounter == 22 && exportPath.isNotEmpty())
+        if (screenshotFrameCounter == snapFrame && exportPath.isNotEmpty())
         {
             saveSnapshotToFile(exportPath);
             if (exportFxPath.isEmpty() && exportTimePath.isEmpty() && exportPresetPath.isEmpty())
