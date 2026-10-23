@@ -33,14 +33,23 @@ function findGhCli() {
 }
 
 function packageArtifacts(version) {
-    const standaloneExe = path.join(PROJECT_ROOT, 'build', 'Prismor_artefacts', 'Release', 'Standalone', `Prismor ${version}.exe`);
-    const vst3Dir = path.join(PROJECT_ROOT, 'build', 'Prismor_artefacts', 'Release', 'VST3', `Prismor ${version}.vst3`);
+    const standaloneCandidates = [
+        path.join(PROJECT_ROOT, 'build', 'Prismor_artefacts', 'Standalone', `Prismor ${version}.exe`),
+        path.join(PROJECT_ROOT, 'build', 'Prismor_artefacts', 'Release', 'Standalone', `Prismor ${version}.exe`)
+    ];
+    const vst3Candidates = [
+        path.join(PROJECT_ROOT, 'build', 'Prismor_artefacts', 'VST3', `Prismor ${version}.vst3`),
+        path.join(PROJECT_ROOT, 'build', 'Prismor_artefacts', 'Release', 'VST3', `Prismor ${version}.vst3`)
+    ];
+
+    const standaloneExe = standaloneCandidates.find(p => fs.existsSync(p));
+    const vst3Dir = vst3Candidates.find(p => fs.existsSync(p));
     
-    if (!fs.existsSync(standaloneExe)) {
-        throw new Error(`Standalone executable not found at: ${standaloneExe}`);
+    if (!standaloneExe) {
+        throw new Error(`Standalone executable not found in: ${standaloneCandidates.join(' or ')}`);
     }
-    if (!fs.existsSync(vst3Dir)) {
-        throw new Error(`VST3 bundle not found at: ${vst3Dir}`);
+    if (!vst3Dir) {
+        throw new Error(`VST3 bundle not found in: ${vst3Candidates.join(' or ')}`);
     }
 
     const stagingDir = path.join(PROJECT_ROOT, 'build', 'release_staging');

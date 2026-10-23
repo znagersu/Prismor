@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(Prismor VERSION 1.0.17.0 LANGUAGES C CXX)
+project(Prismor VERSION 1.0.80.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -38,7 +38,7 @@ juce_add_plugin(Prismor
     PLUGIN_MANUFACTURER_CODE Cysa
     PLUGIN_CODE Prsm
     FORMATS VST3 Standalone
-    PRODUCT_NAME "Prismor 1.0.17.0"
+    PRODUCT_NAME "Prismor 1.0.80.0"
 )
 
 juce_generate_juce_header(Prismor)
