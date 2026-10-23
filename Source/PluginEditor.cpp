@@ -3,6 +3,166 @@
 
 using namespace PrismorUI;
 
+// =============================================================================
+// Phase 7.1 Autonomous In-App Updater (Audio-Safe Background Worker)
+// =============================================================================
+PrismorAudioProcessorEditor::UpdateNotificationButton::UpdateNotificationButton()
+    : juce::Button("UpdateNotificationButton")
+{
+    setTooltip("A new version of Prismor is available! Click to download the latest release.");
+}
+
+void PrismorAudioProcessorEditor::UpdateNotificationButton::setVersionText(const juce::String& ver)
+{
+    versionStr = ver;
+    repaint();
+}
+
+void PrismorAudioProcessorEditor::UpdateNotificationButton::paintButton(
+    juce::Graphics& g,
+    bool shouldDrawButtonAsHighlighted,
+    bool shouldDrawButtonAsDown)
+{
+    auto bounds = getLocalBounds().toFloat().reduced(1.0f);
+
+    // Deep Hardware Amber / Neon Pill Button
+    const juce::Colour bgTop = shouldDrawButtonAsDown ? juce::Colour(0xFF38220A)
+                             : (shouldDrawButtonAsHighlighted ? juce::Colour(0xFF4F310E) : juce::Colour(0xFF281907));
+    const juce::Colour bgBot = shouldDrawButtonAsDown ? juce::Colour(0xFF201303)
+                             : (shouldDrawButtonAsHighlighted ? juce::Colour(0xFF301E06) : juce::Colour(0xFF160D03));
+
+    juce::ColourGradient grad(bgTop, bounds.getX(), bounds.getY(), bgBot, bounds.getX(), bounds.getBottom(), false);
+    g.setGradientFill(grad);
+    g.fillRoundedRectangle(bounds, 3.5f);
+
+    // Subtle 1px specular highlight on top rim
+    g.setColour(juce::Colours::white.withAlpha(0.18f));
+    g.drawHorizontalLine(static_cast<int>(bounds.getY() + 1.0f), bounds.getX() + 3.0f, bounds.getRight() - 3.0f);
+
+    // Glowing Amber / Neon Border
+    const juce::Colour borderCol = shouldDrawButtonAsHighlighted ? juce::Colour(0xFFFFBA4D) : juce::Colour(0xFFFF9900);
+    g.setColour(borderCol.withAlpha(shouldDrawButtonAsHighlighted ? 0.35f : 0.15f));
+    g.drawRoundedRectangle(bounds.expanded(1.0f), 4.5f, 1.5f);
+
+    g.setColour(borderCol);
+    g.drawRoundedRectangle(bounds, 3.5f, 1.2f);
+
+    // Download Arrow Icon (Glowing Amber)
+    const float iconX = bounds.getX() + 9.0f;
+    const float iconY = bounds.getCentreY();
+    juce::Path arrow;
+    arrow.addTriangle(iconX, iconY - 3.5f, iconX + 7.0f, iconY - 3.5f, iconX + 3.5f, iconY + 3.5f);
+    g.setColour(borderCol);
+    g.fillPath(arrow);
+
+    // Text Label
+    g.setColour(shouldDrawButtonAsHighlighted ? juce::Colour(0xFFFFF2D9) : juce::Colour(0xFFFFE0A3));
+    g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 9.2f, juce::Font::bold));
+
+    juce::String txt = "UPDATE AVAILABLE";
+    if (versionStr.isNotEmpty())
+        txt += " " + versionStr;
+
+    juce::Rectangle<float> textBounds(iconX + 11.0f, bounds.getY(), bounds.getWidth() - (iconX - bounds.getX() + 13.0f), bounds.getHeight());
+    g.drawText(txt, textBounds, juce::Justification::centred, false);
+}
+
+PrismorAudioProcessorEditor::UpdateCheckerThread::UpdateCheckerThread(std::function<void(const juce::String&)> onNewVersionFound)
+    : juce::Thread("PrismorUpdateChecker"), callback(std::move(onNewVersionFound))
+{
+}
+
+PrismorAudioProcessorEditor::UpdateCheckerThread::~UpdateCheckerThread()
+{
+    stopThread(2000);
+}
+
+bool PrismorAudioProcessorEditor::UpdateCheckerThread::isRemoteVersionNewer(juce::String remoteTag, juce::String currentVer)
+{
+    auto cleanVersion = [](juce::String s) -> std::vector<int> {
+        s = s.trim();
+        while (s.isNotEmpty() && !juce::CharacterFunctions::isDigit(s[0]))
+            s = s.substring(1);
+
+        std::vector<int> parts;
+        juce::StringArray tokens;
+        tokens.addTokens(s, ".", "");
+        for (auto& t : tokens)
+            parts.push_back(t.getIntValue());
+        while (parts.size() < 4)
+            parts.push_back(0);
+        return parts;
+    };
+
+    const auto r = cleanVersion(remoteTag);
+    const auto c = cleanVersion(currentVer);
+
+    for (size_t i = 0; i < std::max(r.size(), c.size()); ++i)
+    {
+        const int rv = (i < r.size()) ? r[i] : 0;
+        const int cv = (i < c.size()) ? c[i] : 0;
+        if (rv > cv) return true;
+        if (rv < cv) return false;
+    }
+    return false;
+}
+
+void PrismorAudioProcessorEditor::UpdateCheckerThread::run()
+{
+    // Check if test environment simulation is active
+    const juce::String simTag = juce::SystemStats::getEnvironmentVariable("PRISMOR_SIMULATE_UPDATE", {});
+    if (simTag.isNotEmpty())
+    {
+        wait(200);
+        if (callback && !threadShouldExit())
+        {
+            juce::MessageManager::callAsync([cb = callback, simTag] {
+                cb(simTag);
+            });
+        }
+        return;
+    }
+
+    // Sleep briefly so the UI window and audio graph have completed initial startup
+    wait(600);
+    if (threadShouldExit()) return;
+
+    try
+    {
+        const juce::URL url("https://api.github.com/repos/znagersu/Prismor/releases/latest");
+        const auto opt = juce::URL::InputStreamOptions(juce::URL::ParameterHandling::inAddress)
+                             .withConnectionTimeoutMs(2000)
+                             .withExtraHeaders("User-Agent: Prismor-Update-Checker\r\nAccept: application/vnd.github+json\r\n");
+
+        if (auto stream = url.createInputStream(opt))
+        {
+            if (threadShouldExit()) return;
+            const juce::String responseText = stream->readEntireStreamAsString();
+            const auto json = juce::JSON::parse(responseText);
+
+            if (json.isObject() && json.hasProperty("tag_name"))
+            {
+                const juce::String remoteTag = json["tag_name"].toString();
+                const juce::String currentVer = ProjectInfo::versionString;
+
+                if (isRemoteVersionNewer(remoteTag, currentVer))
+                {
+                    if (callback && !threadShouldExit())
+                    {
+                        juce::MessageManager::callAsync([cb = callback, remoteTag] {
+                            cb(remoteTag);
+                        });
+                    }
+                }
+            }
+        }
+    }
+    catch (...)
+    {
+        // Safe catch-all: network failures, offline status, or DNS errors never impact DSP or UI
+    }
+}
+
 PrismorAudioProcessorEditor::PrismorAudioProcessorEditor(PrismorAudioProcessor& p)
     : AudioProcessorEditor(&p),
       audioProcessor(p),
@@ -688,11 +848,36 @@ PrismorAudioProcessorEditor::PrismorAudioProcessorEditor(PrismorAudioProcessor& 
     setBottomCenterMode(0);
     setActiveTab(0);
     startTimerHz(60);
+
+    // -------------------------------------------------------------------------
+    // Phase 7.1 Autonomous GitHub Release & In-App Updater
+    // -------------------------------------------------------------------------
+    addChildComponent(updateAvailableBtn);
+    updateAvailableBtn.setVisible(false);
+    updateAvailableBtn.onClick = [] {
+        juce::URL("https://github.com/znagersu/Prismor/releases/latest/download/Prismor_Latest.zip").launchInDefaultBrowser();
+    };
+
+    juce::Component::SafePointer<PrismorAudioProcessorEditor> safeThis(this);
+    updateCheckerThread = std::make_unique<UpdateCheckerThread>([safeThis](const juce::String& remoteTag) {
+        if (safeThis != nullptr)
+        {
+            safeThis->updateAvailableBtn.setVersionText(remoteTag);
+            safeThis->updateAvailableBtn.setVisible(true);
+            safeThis->repaint(safeThis->topSilverHeaderRect);
+        }
+    });
+    updateCheckerThread->startThread(juce::Thread::Priority::low);
 }
 
 PrismorAudioProcessorEditor::~PrismorAudioProcessorEditor()
 {
     stopTimer();
+    if (updateCheckerThread != nullptr)
+    {
+        updateCheckerThread->stopThread(2000);
+        updateCheckerThread = nullptr;
+    }
     setLookAndFeel(nullptr);
 }
 
@@ -1398,17 +1583,18 @@ void PrismorAudioProcessorEditor::paint(juce::Graphics& g)
     g.drawLine(24.0f, 24.0f, 37.0f, 30.0f, 1.8f);
 
     // High-Contrast Branding Text with Titanium Drop-Shadow
+    const juce::String pluginVer = ProjectInfo::versionString;
     g.setColour(juce::Colours::white.withAlpha(0.85f));
     g.setFont(juce::Font(juce::Font::getDefaultSansSerifFontName(), 14.5f, juce::Font::bold));
-    g.drawText("PRISMOR 1.0.15.4", 44, 9, 140, 22, juce::Justification::centredLeft, false);
+    g.drawText("PRISMOR " + pluginVer, 44, 9, 140, 22, juce::Justification::centredLeft, false);
 
     g.setColour(juce::Colour(0xFF232836));
     g.setFont(juce::Font(juce::Font::getDefaultSansSerifFontName(), 14.5f, juce::Font::bold));
-    g.drawText("PRISMOR 1.0.15.4", 44, 8, 140, 22, juce::Justification::centredLeft, false);
+    g.drawText("PRISMOR " + pluginVer, 44, 8, 140, 22, juce::Justification::centredLeft, false);
 
     g.setColour(juce::Colour(0xFF555E73));
     g.setFont(juce::Font(juce::Font::getDefaultSansSerifFontName(), 7.4f, juce::Font::bold));
-    g.drawText("1.0.15.4 | 64-BIT | SPECTRAL SYNTH", 44, 27, 210, 14, juce::Justification::centredLeft, false);
+    g.drawText(pluginVer + " | 64-BIT | SPECTRAL SYNTH", 44, 27, 210, 14, juce::Justification::centredLeft, false);
 
     // Vertical milled dividing groove at x = 264
     g.setColour(Palette::borderDark.withAlpha(0.35f));
@@ -1473,7 +1659,10 @@ void PrismorAudioProcessorEditor::paint(juce::Graphics& g)
     drawLaserText("! PANIC", 498, static_cast<int>(meterY), 42, 12, panicCol);
 
     // High Precision DSP indicator
-    drawLaserText("64-BIT DUAL SPECTRAL DSP // RESYNTHESIS ENGINE", 558, static_cast<int>(meterY), 390, 12, juce::Colour(0xFF384052));
+    if (updateAvailableBtn.isVisible())
+        drawLaserText("64-BIT DUAL SPECTRAL DSP", 558, static_cast<int>(meterY), 195, 12, juce::Colour(0xFF384052));
+    else
+        drawLaserText("64-BIT DUAL SPECTRAL DSP // RESYNTHESIS ENGINE", 558, static_cast<int>(meterY), 390, 12, juce::Colour(0xFF384052));
 
     // Vertical milled dividing groove at x = 964
     g.setColour(Palette::borderDark.withAlpha(0.35f));
@@ -2238,6 +2427,7 @@ void PrismorAudioProcessorEditor::resized()
     topMeterRect = { 1180, 8, 20, 38 };
     topTelemetryRect = { 275, 10, 218, 24 };
     topPanicRect = { 495, 12, 50, 18 };
+    updateAvailableBtn.setBounds(760, 14, 194, 26);
 
     // -------------------------------------------------------------------------
     // TIER 2: BELOW-HEADER NAVIGATION & PRESET STRIP (y = 52, h = 28)

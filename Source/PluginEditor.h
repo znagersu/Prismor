@@ -95,6 +95,31 @@ private:
     juce::Rectangle<int> topTelemetryRect;
     juce::Rectangle<int> topPanicRect;
 
+    // Phase 7.1 Autonomous In-App Updater (Audio-Safe Background Worker)
+    class UpdateNotificationButton : public juce::Button
+    {
+    public:
+        UpdateNotificationButton();
+        void setVersionText(const juce::String& ver);
+        void paintButton(juce::Graphics& g, bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override;
+    private:
+        juce::String versionStr;
+    };
+
+    class UpdateCheckerThread : public juce::Thread
+    {
+    public:
+        explicit UpdateCheckerThread(std::function<void(const juce::String&)> onNewVersionFound);
+        ~UpdateCheckerThread() override;
+        void run() override;
+    private:
+        std::function<void(const juce::String&)> callback;
+        static bool isRemoteVersionNewer(juce::String remoteTag, juce::String currentVer);
+    };
+
+    UpdateNotificationButton updateAvailableBtn;
+    std::unique_ptr<UpdateCheckerThread> updateCheckerThread;
+
     // -------------------------------------------------------------------------
     // SYNTH TAB CONTROLS (tabGroup = 0)
     // -------------------------------------------------------------------------
