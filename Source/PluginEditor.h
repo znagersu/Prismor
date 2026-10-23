@@ -95,15 +95,30 @@ private:
     juce::Rectangle<int> topTelemetryRect;
     juce::Rectangle<int> topPanicRect;
 
-    // Phase 7.1 Autonomous In-App Updater (Audio-Safe Background Worker)
+    // Phase 7.2 In-App Automated Self-Updater
+    enum class UpdateState
+    {
+        Hidden,
+        UpdateAvailable,
+        Downloading,
+        Extracting,
+        InstalledRestartReady,
+        InstalledReloadDAW,
+        ErrorFallback
+    };
+
     class UpdateNotificationButton : public juce::Button
     {
     public:
         UpdateNotificationButton();
-        void setVersionText(const juce::String& ver);
+        void setUpdateState(UpdateState newState, const juce::String& ver = {}, float progressNorm = 0.0f);
+        UpdateState getUpdateState() const { return currentState; }
+        const juce::String& getVersionText() const { return versionStr; }
         void paintButton(juce::Graphics& g, bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override;
     private:
+        UpdateState currentState { UpdateState::Hidden };
         juce::String versionStr;
+        float progress { 0.0f };
     };
 
     class UpdateCheckerThread : public juce::Thread
@@ -117,8 +132,27 @@ private:
         static bool isRemoteVersionNewer(juce::String remoteTag, juce::String currentVer);
     };
 
+    class SelfUpdateWorkerThread : public juce::Thread
+    {
+    public:
+        using ProgressCallback = std::function<void(float progressNorm, const juce::String& statusMsg)>;
+        using CompletionCallback = std::function<void(bool success, bool isStandalone, const juce::String& errorMsg)>;
+
+        SelfUpdateWorkerThread(ProgressCallback onProg, CompletionCallback onDone);
+        ~SelfUpdateWorkerThread() override;
+        void run() override;
+
+    private:
+        ProgressCallback progressCb;
+        CompletionCallback doneCb;
+    };
+
     UpdateNotificationButton updateAvailableBtn;
     std::unique_ptr<UpdateCheckerThread> updateCheckerThread;
+    std::unique_ptr<SelfUpdateWorkerThread> selfUpdateWorkerThread;
+
+    void triggerSelfUpdate();
+    void applyRestartOrRelaunch();
 
     // -------------------------------------------------------------------------
     // SYNTH TAB CONTROLS (tabGroup = 0)

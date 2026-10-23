@@ -1,20 +1,45 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+#if JUCE_WINDOWS
+#include <windows.h>
+#include <shellapi.h>
+#endif
+
 using namespace PrismorUI;
 
 // =============================================================================
-// Phase 7.1 Autonomous In-App Updater (Audio-Safe Background Worker)
+// Phase 7.2 In-App Automated Self-Updater
 // =============================================================================
 PrismorAudioProcessorEditor::UpdateNotificationButton::UpdateNotificationButton()
     : juce::Button("UpdateNotificationButton")
 {
-    setTooltip("A new version of Prismor is available! Click to download the latest release.");
+    setTooltip("A new version of Prismor is available! Click to update automatically.");
 }
 
-void PrismorAudioProcessorEditor::UpdateNotificationButton::setVersionText(const juce::String& ver)
+void PrismorAudioProcessorEditor::UpdateNotificationButton::setUpdateState(
+    UpdateState newState,
+    const juce::String& ver,
+    float progressNorm)
 {
-    versionStr = ver;
+    currentState = newState;
+    if (ver.isNotEmpty())
+        versionStr = ver;
+    progress = juce::jlimit(0.0f, 1.0f, progressNorm);
+
+    if (currentState == UpdateState::UpdateAvailable)
+        setTooltip("New version available: " + versionStr + ". Click to update Prismor automatically in-place.");
+    else if (currentState == UpdateState::Downloading)
+        setTooltip("Downloading update package in background...");
+    else if (currentState == UpdateState::Extracting)
+        setTooltip("Extracting and installing update...");
+    else if (currentState == UpdateState::InstalledRestartReady)
+        setTooltip("Update installed successfully! Click to restart Prismor.");
+    else if (currentState == UpdateState::InstalledReloadDAW)
+        setTooltip("Update installed successfully! The new version will load the next time your DAW loads Prismor.");
+    else if (currentState == UpdateState::ErrorFallback)
+        setTooltip("Automated file swap failed. Click to open browser download link.");
+
     repaint();
 }
 
@@ -25,46 +50,317 @@ void PrismorAudioProcessorEditor::UpdateNotificationButton::paintButton(
 {
     auto bounds = getLocalBounds().toFloat().reduced(1.0f);
 
-    // Deep Hardware Amber / Neon Pill Button
-    const juce::Colour bgTop = shouldDrawButtonAsDown ? juce::Colour(0xFF38220A)
-                             : (shouldDrawButtonAsHighlighted ? juce::Colour(0xFF4F310E) : juce::Colour(0xFF281907));
-    const juce::Colour bgBot = shouldDrawButtonAsDown ? juce::Colour(0xFF201303)
-                             : (shouldDrawButtonAsHighlighted ? juce::Colour(0xFF301E06) : juce::Colour(0xFF160D03));
+    juce::Colour bgTop(0xFF281907);
+    juce::Colour bgBot(0xFF160D03);
+    juce::Colour borderCol(0xFFFF9900);
+    juce::Colour textCol(0xFFFFE0A3);
+    juce::String txt = "1-CLICK UPDATE";
 
+    if (currentState == UpdateState::Downloading)
+    {
+        bgTop = juce::Colour(0xFF0D2533);
+        bgBot = juce::Colour(0xFF07141C);
+        borderCol = juce::Colour(0xFF00D5FF);
+        textCol = juce::Colour(0xFFD0F4FF);
+        const int pct = juce::roundToInt(progress * 100.0f);
+        txt = "DOWNLOADING (" + juce::String(pct) + "%)...";
+    }
+    else if (currentState == UpdateState::Extracting)
+    {
+        bgTop = juce::Colour(0xFF1A2238);
+        bgBot = juce::Colour(0xFF0D1220);
+        borderCol = juce::Colour(0xFF7099FF);
+        textCol = juce::Colour(0xFFE0EAFF);
+        txt = "INSTALLING...";
+    }
+    else if (currentState == UpdateState::InstalledRestartReady)
+    {
+        bgTop = shouldDrawButtonAsDown ? juce::Colour(0xFF082813) : juce::Colour(0xFF0E381A);
+        bgBot = shouldDrawButtonAsDown ? juce::Colour(0xFF04180A) : juce::Colour(0xFF06200D);
+        borderCol = shouldDrawButtonAsHighlighted ? juce::Colour(0xFF55FFA0) : juce::Colour(0xFF00FF7F);
+        textCol = juce::Colour(0xFFE8FFF2);
+        txt = "RESTART TO APPLY";
+    }
+    else if (currentState == UpdateState::InstalledReloadDAW)
+    {
+        bgTop = juce::Colour(0xFF0E381A);
+        bgBot = juce::Colour(0xFF06200D);
+        borderCol = juce::Colour(0xFF00FF7F);
+        textCol = juce::Colour(0xFFE8FFF2);
+        txt = "UPDATED (Reload DAW)";
+    }
+    else if (currentState == UpdateState::ErrorFallback)
+    {
+        bgTop = juce::Colour(0xFF381014);
+        bgBot = juce::Colour(0xFF200709);
+        borderCol = juce::Colour(0xFFFF4D6A);
+        textCol = juce::Colour(0xFFFFD0D8);
+        txt = "MANUAL ZIP DOWNLOAD";
+    }
+    else
+    {
+        // UpdateAvailable
+        bgTop = shouldDrawButtonAsDown ? juce::Colour(0xFF38220A)
+              : (shouldDrawButtonAsHighlighted ? juce::Colour(0xFF4F310E) : juce::Colour(0xFF281907));
+        bgBot = shouldDrawButtonAsDown ? juce::Colour(0xFF201303)
+              : (shouldDrawButtonAsHighlighted ? juce::Colour(0xFF301E06) : juce::Colour(0xFF160D03));
+        borderCol = shouldDrawButtonAsHighlighted ? juce::Colour(0xFFFFBA4D) : juce::Colour(0xFFFF9900);
+        textCol = shouldDrawButtonAsHighlighted ? juce::Colour(0xFFFFF2D9) : juce::Colour(0xFFFFE0A3);
+        txt = "1-CLICK UPDATE";
+        if (versionStr.isNotEmpty())
+            txt += " " + versionStr;
+    }
+
+    // Base background gradient
     juce::ColourGradient grad(bgTop, bounds.getX(), bounds.getY(), bgBot, bounds.getX(), bounds.getBottom(), false);
     g.setGradientFill(grad);
     g.fillRoundedRectangle(bounds, 3.5f);
 
-    // Subtle 1px specular highlight on top rim
+    // Progress fill bar inside the button during download/extraction
+    if ((currentState == UpdateState::Downloading || currentState == UpdateState::Extracting) && progress > 0.01f)
+    {
+        auto progBounds = bounds.reduced(1.5f);
+        progBounds.setWidth(progBounds.getWidth() * progress);
+        juce::ColourGradient progGrad(borderCol.withAlpha(0.35f), progBounds.getX(), progBounds.getY(),
+                                     borderCol.withAlpha(0.18f), progBounds.getX(), progBounds.getBottom(), false);
+        g.setGradientFill(progGrad);
+        g.fillRoundedRectangle(progBounds, 2.5f);
+    }
+
+    // 1px specular top highlight
     g.setColour(juce::Colours::white.withAlpha(0.18f));
     g.drawHorizontalLine(static_cast<int>(bounds.getY() + 1.0f), bounds.getX() + 3.0f, bounds.getRight() - 3.0f);
 
-    // Glowing Amber / Neon Border
-    const juce::Colour borderCol = shouldDrawButtonAsHighlighted ? juce::Colour(0xFFFFBA4D) : juce::Colour(0xFFFF9900);
+    // Glowing border
     g.setColour(borderCol.withAlpha(shouldDrawButtonAsHighlighted ? 0.35f : 0.15f));
     g.drawRoundedRectangle(bounds.expanded(1.0f), 4.5f, 1.5f);
-
     g.setColour(borderCol);
     g.drawRoundedRectangle(bounds, 3.5f, 1.2f);
 
-    // Download Arrow Icon (Glowing Amber)
+    // Glyph indicator
     const float iconX = bounds.getX() + 9.0f;
     const float iconY = bounds.getCentreY();
-    juce::Path arrow;
-    arrow.addTriangle(iconX, iconY - 3.5f, iconX + 7.0f, iconY - 3.5f, iconX + 3.5f, iconY + 3.5f);
-    g.setColour(borderCol);
-    g.fillPath(arrow);
+    if (currentState == UpdateState::InstalledRestartReady || currentState == UpdateState::InstalledReloadDAW)
+    {
+        // Checkmark glyph
+        juce::Path check;
+        check.startNewSubPath(iconX, iconY);
+        check.lineTo(iconX + 2.5f, iconY + 3.0f);
+        check.lineTo(iconX + 7.5f, iconY - 3.5f);
+        g.setColour(borderCol);
+        g.strokePath(check, juce::PathStrokeType(1.6f));
+    }
+    else
+    {
+        // Down arrow glyph
+        juce::Path arrow;
+        arrow.addTriangle(iconX, iconY - 3.5f, iconX + 7.0f, iconY - 3.5f, iconX + 3.5f, iconY + 3.5f);
+        g.setColour(borderCol);
+        g.fillPath(arrow);
+    }
 
     // Text Label
-    g.setColour(shouldDrawButtonAsHighlighted ? juce::Colour(0xFFFFF2D9) : juce::Colour(0xFFFFE0A3));
+    g.setColour(textCol);
     g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 9.2f, juce::Font::bold));
-
-    juce::String txt = "UPDATE AVAILABLE";
-    if (versionStr.isNotEmpty())
-        txt += " " + versionStr;
-
     juce::Rectangle<float> textBounds(iconX + 11.0f, bounds.getY(), bounds.getWidth() - (iconX - bounds.getX() + 13.0f), bounds.getHeight());
     g.drawText(txt, textBounds, juce::Justification::centred, false);
+}
+
+// -----------------------------------------------------------------------------
+// SelfUpdateWorkerThread: Downloads, Extracts, and In-Place Replaces Binaries
+// -----------------------------------------------------------------------------
+PrismorAudioProcessorEditor::SelfUpdateWorkerThread::SelfUpdateWorkerThread(
+    ProgressCallback onProg,
+    CompletionCallback onDone)
+    : juce::Thread("PrismorSelfUpdater"),
+      progressCb(std::move(onProg)),
+      doneCb(std::move(onDone))
+{
+}
+
+PrismorAudioProcessorEditor::SelfUpdateWorkerThread::~SelfUpdateWorkerThread()
+{
+    stopThread(3000);
+}
+
+void PrismorAudioProcessorEditor::SelfUpdateWorkerThread::run()
+{
+    auto reportProgress = [this](float p, const juce::String& msg) {
+        if (progressCb && !threadShouldExit())
+        {
+            juce::MessageManager::callAsync([cb = progressCb, p, msg] {
+                cb(p, msg);
+            });
+        }
+    };
+
+    auto reportDone = [this](bool success, bool isStandalone, const juce::String& err) {
+        if (doneCb && !threadShouldExit())
+        {
+            juce::MessageManager::callAsync([cb = doneCb, success, isStandalone, err] {
+                cb(success, isStandalone, err);
+            });
+        }
+    };
+
+    reportProgress(0.05f, "CONNECTING...");
+
+    juce::File tempDir = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("PrismorSelfUpdate");
+    tempDir.createDirectory();
+    juce::File zipFile = tempDir.getChildFile("Prismor_Latest.zip");
+
+    try
+    {
+        const juce::URL url("https://github.com/znagersu/Prismor/releases/latest/download/Prismor_Latest.zip");
+        const auto opt = juce::URL::InputStreamOptions(juce::URL::ParameterHandling::inAddress)
+                             .withConnectionTimeoutMs(10000)
+                             .withNumRedirectsToFollow(5)
+                             .withExtraHeaders("User-Agent: Prismor-Self-Updater\r\n");
+
+        if (auto in = url.createInputStream(opt))
+        {
+            zipFile.deleteFile();
+            juce::FileOutputStream out(zipFile);
+            if (!out.openedOk())
+            {
+                reportDone(false, false, "Could not open target zip file for writing.");
+                return;
+            }
+
+            const int64 totalLength = in->getTotalLength();
+            int64 bytesRead = 0;
+            constexpr int bufSize = 65536;
+            std::vector<char> buf(bufSize);
+
+            while (!in->isExhausted() && !threadShouldExit())
+            {
+                const int read = in->read(buf.data(), bufSize);
+                if (read <= 0) break;
+                out.write(buf.data(), (size_t)read);
+                bytesRead += read;
+
+                if (totalLength > 0)
+                {
+                    const float p = 0.05f + 0.65f * (static_cast<float>(bytesRead) / static_cast<float>(totalLength));
+                    reportProgress(p, "DOWNLOADING...");
+                }
+            }
+            out.flush();
+
+            if (threadShouldExit()) return;
+        }
+        else
+        {
+            reportDone(false, false, "Network connection to download server failed.");
+            return;
+        }
+
+        reportProgress(0.75f, "EXTRACTING...");
+        juce::File extractDir = tempDir.getChildFile("extracted");
+        extractDir.deleteRecursively();
+        extractDir.createDirectory();
+
+        juce::ZipFile zip(zipFile);
+        const auto extractResult = zip.uncompressTo(extractDir);
+        if (extractResult.failed())
+        {
+            reportDone(false, false, "Extraction failed: " + extractResult.getErrorMessage());
+            return;
+        }
+
+        reportProgress(0.88f, "INSTALLING...");
+        const juce::File currentApp = juce::File::getSpecialLocation(juce::File::currentApplicationFile);
+        const juce::File currentExe = juce::File::getSpecialLocation(juce::File::currentExecutableFile);
+        const bool isStandalone = (juce::JUCEApplicationBase::isStandaloneApp()
+                                   || currentApp.hasFileExtension(".exe")
+                                   || currentExe == currentApp);
+
+        bool replacedSuccessfully = false;
+
+        if (isStandalone)
+        {
+            juce::Array<juce::File> foundExes;
+            extractDir.findChildFiles(foundExes, juce::File::findFiles, true, "*.exe");
+            if (foundExes.isEmpty())
+            {
+                reportDone(false, true, "New executable not found in update package.");
+                return;
+            }
+
+            const juce::File newExe = foundExes.getFirst();
+            const juce::File backupExe = currentApp.withFileExtension("exe.old");
+
+            // Windows NTFS Rename Trick: rename running executable, then copy new one to original path
+            const BOOL renamed = MoveFileExW(currentApp.getFullPathName().toWideCharPointer(),
+                                             backupExe.getFullPathName().toWideCharPointer(),
+                                             MOVEFILE_REPLACE_EXISTING);
+            if (renamed)
+            {
+                if (newExe.copyFileTo(currentApp))
+                {
+                    replacedSuccessfully = true;
+                    MoveFileExW(backupExe.getFullPathName().toWideCharPointer(), nullptr, MOVEFILE_DELAY_UNTIL_REBOOT);
+                }
+                else
+                {
+                    MoveFileExW(backupExe.getFullPathName().toWideCharPointer(),
+                               currentApp.getFullPathName().toWideCharPointer(),
+                               MOVEFILE_REPLACE_EXISTING);
+                }
+            }
+        }
+        else
+        {
+            // VST3 Plugin
+            juce::Array<juce::File> foundVst3;
+            extractDir.findChildFiles(foundVst3, juce::File::findFiles, true, "*.vst3");
+            if (foundVst3.isEmpty())
+            {
+                reportDone(false, false, "New VST3 binary not found in update package.");
+                return;
+            }
+
+            const juce::File newVst3 = foundVst3.getFirst();
+            const juce::File targetVst3 = currentApp;
+            const juce::File backupVst3 = targetVst3.withFileExtension("vst3.old");
+
+            const BOOL renamed = MoveFileExW(targetVst3.getFullPathName().toWideCharPointer(),
+                                             backupVst3.getFullPathName().toWideCharPointer(),
+                                             MOVEFILE_REPLACE_EXISTING);
+            if (renamed)
+            {
+                if (newVst3.copyFileTo(targetVst3))
+                {
+                    replacedSuccessfully = true;
+                    MoveFileExW(backupVst3.getFullPathName().toWideCharPointer(), nullptr, MOVEFILE_DELAY_UNTIL_REBOOT);
+                }
+                else
+                {
+                    MoveFileExW(backupVst3.getFullPathName().toWideCharPointer(),
+                               targetVst3.getFullPathName().toWideCharPointer(),
+                               MOVEFILE_REPLACE_EXISTING);
+                }
+            }
+        }
+
+        if (replacedSuccessfully)
+        {
+            reportProgress(1.0f, isStandalone ? "RESTART TO APPLY" : "UPDATED (Reload DAW)");
+            reportDone(true, isStandalone, {});
+        }
+        else
+        {
+            reportDone(false, isStandalone, "Permissions prevented in-place binary swap.");
+        }
+    }
+    catch (const std::exception& e)
+    {
+        reportDone(false, false, juce::String("Error: ") + e.what());
+    }
+    catch (...)
+    {
+        reportDone(false, false, "Unknown self-updater error.");
+    }
 }
 
 PrismorAudioProcessorEditor::UpdateCheckerThread::UpdateCheckerThread(std::function<void(const juce::String&)> onNewVersionFound)
@@ -857,20 +1153,33 @@ PrismorAudioProcessorEditor::PrismorAudioProcessorEditor(PrismorAudioProcessor& 
     startTimerHz(60);
 
     // -------------------------------------------------------------------------
-    // Phase 7.1 Autonomous GitHub Release & In-App Updater
+    // Phase 7.2 In-App Automated Self-Updater
     // -------------------------------------------------------------------------
     addChildComponent(updateAvailableBtn);
     updateAvailableBtn.setVisible(false);
-    updateAvailableBtn.onClick = [] {
-        juce::URL("https://github.com/znagersu/Prismor/releases/latest/download/Prismor_Latest.zip").launchInDefaultBrowser();
+    updateAvailableBtn.onClick = [this] {
+        const auto state = updateAvailableBtn.getUpdateState();
+        if (state == UpdateState::UpdateAvailable)
+        {
+            triggerSelfUpdate();
+        }
+        else if (state == UpdateState::InstalledRestartReady)
+        {
+            applyRestartOrRelaunch();
+        }
+        else if (state == UpdateState::ErrorFallback)
+        {
+            juce::URL("https://github.com/znagersu/Prismor/releases/latest/download/Prismor_Latest.zip").launchInDefaultBrowser();
+        }
     };
 
     juce::Component::SafePointer<PrismorAudioProcessorEditor> safeThis(this);
     updateCheckerThread = std::make_unique<UpdateCheckerThread>([safeThis](const juce::String& remoteTag) {
         if (safeThis != nullptr)
         {
-            safeThis->updateAvailableBtn.setVersionText(remoteTag);
+            safeThis->updateAvailableBtn.setUpdateState(UpdateState::UpdateAvailable, remoteTag);
             safeThis->updateAvailableBtn.setVisible(true);
+            safeThis->updateAvailableBtn.toFront(true);
             safeThis->repaint(safeThis->topSilverHeaderRect);
         }
     });
@@ -880,12 +1189,61 @@ PrismorAudioProcessorEditor::PrismorAudioProcessorEditor(PrismorAudioProcessor& 
 PrismorAudioProcessorEditor::~PrismorAudioProcessorEditor()
 {
     stopTimer();
+    if (selfUpdateWorkerThread != nullptr)
+    {
+        selfUpdateWorkerThread->stopThread(3000);
+        selfUpdateWorkerThread = nullptr;
+    }
     if (updateCheckerThread != nullptr)
     {
         updateCheckerThread->stopThread(2000);
         updateCheckerThread = nullptr;
     }
     setLookAndFeel(nullptr);
+}
+
+void PrismorAudioProcessorEditor::triggerSelfUpdate()
+{
+    updateAvailableBtn.setUpdateState(UpdateState::Downloading, updateAvailableBtn.getVersionText(), 0.05f);
+
+    juce::Component::SafePointer<PrismorAudioProcessorEditor> safeThis(this);
+    selfUpdateWorkerThread = std::make_unique<SelfUpdateWorkerThread>(
+        [safeThis](float prog, const juce::String& /*msg*/) {
+            if (safeThis != nullptr)
+            {
+                if (prog >= 0.72f)
+                    safeThis->updateAvailableBtn.setUpdateState(UpdateState::Extracting, safeThis->updateAvailableBtn.getVersionText(), prog);
+                else
+                    safeThis->updateAvailableBtn.setUpdateState(UpdateState::Downloading, safeThis->updateAvailableBtn.getVersionText(), prog);
+            }
+        },
+        [safeThis](bool success, bool isStandalone, const juce::String& errMsg) {
+            if (safeThis != nullptr)
+            {
+                if (success)
+                {
+                    if (isStandalone)
+                        safeThis->updateAvailableBtn.setUpdateState(UpdateState::InstalledRestartReady, safeThis->updateAvailableBtn.getVersionText());
+                    else
+                        safeThis->updateAvailableBtn.setUpdateState(UpdateState::InstalledReloadDAW, safeThis->updateAvailableBtn.getVersionText());
+                }
+                else
+                {
+                    safeThis->updateAvailableBtn.setUpdateState(UpdateState::ErrorFallback, errMsg);
+                }
+            }
+        }
+    );
+    selfUpdateWorkerThread->startThread(juce::Thread::Priority::low);
+}
+
+void PrismorAudioProcessorEditor::applyRestartOrRelaunch()
+{
+#if JUCE_WINDOWS
+    const juce::File currentApp = juce::File::getSpecialLocation(juce::File::currentApplicationFile);
+    ShellExecuteW(nullptr, L"open", currentApp.getFullPathName().toWideCharPointer(), nullptr, nullptr, SW_SHOWNORMAL);
+    juce::JUCEApplicationBase::quit();
+#endif
 }
 
 void PrismorAudioProcessorEditor::syncWaveSelectorsFromEngine()
