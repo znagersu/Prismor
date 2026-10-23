@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Prismor 1.0.4 — Concept C (Obsidian Glass) UI Design Draft</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg-void: #090b10;
+      --bg-obsidian: #0d1017;
+      --bg-card: rgba(19, 24, 36, 0.72);
+      --bg-card-header: rgba(27, 33, 49, 0.65);
+      --bg-track: #121622;
+      --border-glass: rgba(255, 255, 255, 0.08);
+      --border-glass-specular: rgba(255, 255, 255, 0.15);
+      --text-primary: #f0f4fc;
+      --text-secondary: #8c96ac;
+      --text-dim: #4b5468;
+      
+      /* Concept C Velvet Accents */
+      --accent-mint: #38e1b0;
+      --accent-mint-glow: rgba(56, 225, 176, 0.32);
+      --accent-lavender: #a78bfa;
+      --accent-lavender-glow: rgba(167, 139, 250, 0.32);
+      --accent-honey: #fbbf24;
+      --accent-honey-glow: rgba(251, 191, 36, 0.28);
+      --accent-rose: #f43f5e;
+      --accent-emerald: #10b981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: radial-gradient(ellipse at 50% 0%, #151b2a 0%, var(--bg-void) 100%);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Inter", system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 18px 12px;
+      overflow-x: hidden;
+    }
+
+    .preview-header-banner {
+      width: 1260px;
+      max-width: 98vw;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 8px 16px;
+      background: rgba(167, 139, 250, 0.08);
+      border: 1px solid rgba(167, 139, 250, 0.25);
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    .preview-header-banner span strong {
+      color: var(--accent-mint);
+    }
+    .badge-pill {
+      background: rgba(56, 225, 176, 0.15);
+      color: var(--accent-mint);
+      border: 1px solid rgba(56, 225, 176, 0.4);
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+
+    /* Plugin Canvas Frame */
+    .plugin-window {
+      width: 1260px;
+      max-width: 98vw;
+      background: linear-gradient(180deg, #10141f 0%, #090c12 100%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255,255,255,0.05);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* Top Navigation Bar */
+    .top-bar {
+      height: 48px;
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(16, 20, 31, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-glass);
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-logo svg {
+      width: 22px;
+      height: 22px;
+      filter: drop-shadow(0 0 8px var(--accent-mint-glow));
+    }
+    .brand-title {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #fff;
+    }
+    .brand-version {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent-mint);
+      background: rgba(56, 225, 176, 0.1);
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid rgba(56, 225, 176, 0.25);
+    }
+    .brand-subtitle {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      margin-left: 2px;
+    }
+
+    .tab-nav {
+      display: flex;
+      gap: 6px;
+      margin-left: 18px;
+      background: rgba(10, 13, 20, 0.6);
+      padding: 3px;
+      border-radius: 8px;
+      border: 1px solid var(--border-glass);
+    }
+    .tab-btn {
+      padding: 5px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .tab-btn.active {
+      background: rgba(56, 225, 176, 0.16);
+      color: #fff;
+      border: 1px solid rgba(56, 225, 176, 0.45);
+      box-shadow: 0 2px 8px var(--accent-mint-glow);
+    }
+    .tab-btn.fx-active {
+      background: rgba(167, 139, 250, 0.18);
+      color: #fff;
+      border: 1px solid rgba(167, 139, 250, 0.45);
+      box-shadow: 0 2px 8px var(--accent-lavender-glow);
+    }
+
+    .active-layer-pill {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      background: rgba(56, 225, 176, 0.08);
+      border: 1px solid rgba(56, 225, 176, 0.25);
+      border-radius: 20px;
+      font-size: 10.5px;
+      font-weight: 600;
+      color: var(--accent-mint);
+    }
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--accent-mint);
+      border-radius: 50%;
+      box-shadow: 0 0 6px var(--accent-mint);
+    }
+
+    .theme-dropdown {
+      background: rgba(18, 22, 34, 0.7);
+      border: 1px solid var(--border-glass);
+      color: var(--text-primary);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* Main Workspace Layout */
+    .workspace {
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      position: relative;
+    }
+
+    /* Glass Card Standard */
+    .glass-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 8px;
+      border: 1px solid var(--border-glass);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), inset 0 1px 0 var(--border-glass-specular);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-header {
+      height: 26px;
+      padding: 0 10px;
+      background: var(--bg-card-header);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-title-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .card-pip {
+      width: 4px;
+      height: 10px;
+      border-radius: 2px;
+      background: var(--accent-mint);
+      box-shadow: 0 0 6px var(--accent-mint-glow);
+    }
+    .card-pip.lavender {
+      background: var(--accent-lavender);
+      box-shadow: 0 0 6px var(--accent-lavender-glow);
+    }
+    .card-pip.honey {
+      background: var(--accent-honey);
+      box-shadow: 0 0 6px var(--accent-honey-glow);
+    }
+    .card-title {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      color: #fff;
+      text-transform: uppercase;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Top Grid Row: Left Panels (400px), Center Panels (410px), Right Panels (Flex) */
+    .upper-grid {
+      display: grid;
+      grid-template-columns: 400px 410px 1fr;
+      gap: 10px;
+      height: 440px;
+    }
+
+    .left-quad {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .center-quad {
+      display: grid;
+      grid-template-rows: 245px 1fr;
+      gap: 10px;
+    }
+
+    /* Pitch Box Strip */
+    .pitch-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      padding: 6px 8px 4px 8px;
+    }
+    .pitch-box {
+      background: rgba(14, 18, 27, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 5px;
+      padding: 3px 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: ns-resize;
+      transition: all 0.15s ease;
+    }
+    .pitch-box:hover {
+      border-color: var(--accent-mint);
+      box-shadow: 0 0 8px var(--accent-mint-glow);
+    }
+    .pitch-box.lavender:hover {
+      border-color: var(--accent-lavender);
+      box-shadow: 0 0 8px var(--accent-lavender-glow);
+    }
+    .pitch-label {
+      font-size: 8px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      letter-spacing: 0.4px;
+    }
+    .pitch-val {
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      font-family: monospace;
+    }
+
+    /* Knob Clusters & Knobs */
+    .knob-grid-3x2 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 2px;
+      padding: 4px 6px;
+      align-items: center;
+      justify-items: center;
+    }
+
+    .knob-widget {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      cursor: ns-resize;
+    }
+    .knob-ring {
+      width: 38px;
+      height: 38px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .knob-svg {
+      width: 38px;
+      height: 38px;
+      transform: rotate(-90deg);
+    }
+    .knob-cap {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #2a3144 0%, #151924 100%);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .knob-indicator {
+      width: 2px;
+      height: 8px;
+      background: #fff;
+      border-radius: 1px;
+      transform-origin: center 10px;
+      box-shadow: 0 0 4px rgba(255,255,255,0.8);
+    }
+    .knob-label {
+      font-size: 8px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    /* Combobox / Dropdowns */
+    .glass-select {
+      background: rgba(14, 18, 28, 0.7);
+      border: 1px solid var(--border-glass);
+      color: #fff;
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-size: 9.5px;
+      font-weight: 600;
+      outline: none;
+      width: 100%;
+      cursor: pointer;
+    }
+
+    /* Toggle Buttons */
+    .glass-toggle {
+      background: rgba(18, 22, 33, 0.8);
+      border: 1px solid var(--border-glass);
+      color: var(--text-dim);
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+    .glass-toggle.active {
+      color: #fff;
+      background: rgba(56, 225, 176, 0.16);
+      border-color: rgba(56, 225, 176, 0.45);
+      box-shadow: 0 0 8px var(--accent-mint-glow);
+    }
+    .glass-toggle.lavender.active {
+      background: rgba(167, 139, 250, 0.16);
+      border-color: rgba(167, 139, 250, 0.45);
+      box-shadow: 0 0 8px var(--accent-lavender-glow);
+    }
+    .toggle-led {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--text-dim);
+    }
+    .glass-toggle.active .toggle-led {
+      background: var(--accent-mint);
+      box-shadow: 0 0 5px var(--accent-mint);
+    }
+    .glass-toggle.lavender.active .toggle-led {
+      background: var(--accent-lavender);
+      box-shadow: 0 0 5px var(--accent-lavender);
+    }
+
+    /* Right Visualizer Panel */
+    .vis-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .vis-view-toggle {
+      display: flex;
+      gap: 4px;
+      background: rgba(10, 13, 20, 0.6);
+      padding: 2px;
+      border-radius: 6px;
+    }
+    .view-btn {
+      padding: 2px 8px;
+      font-size: 9px;
+      font-weight: 700;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .view-btn.active {
+      background: rgba(56, 225, 176, 0.2);
+      color: #fff;
+      border: 1px solid rgba(56, 225, 176, 0.4);
+    }
+    .vis-canvas {
+      flex: 1;
+      width: 100%;
+      background: radial-gradient(circle at 50% 50%, #0d121c 0%, #06080d 100%);
+      border-radius: 0 0 8px 8px;
+    }
+
+    /* Harmonic Sculptor Bottom Bar in Visualizer */
+    .harmonic-tools-bar {
+      height: 28px;
+      background: rgba(14, 18, 28, 0.85);
+      border-top: 1px solid var(--border-glass);
+      border-bottom: 1px solid var(--border-glass);
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 6px;
+      font-size: 9px;
+    }
+    .tool-chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-glass);
+      color: var(--text-secondary);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .tool-chip:hover {
+      background: rgba(56, 225, 176, 0.15);
+      color: #fff;
+      border-color: rgba(56, 225, 176, 0.35);
+    }
+    .tool-chip.active {
+      background: rgba(56, 225, 176, 0.25);
+      color: #fff;
+      border-color: var(--accent-mint);
+    }
+
+    /* Bottom Grid Row: A/B Layer (240px), Articulator/Arp (1fr), Master Out (300px) */
+    .lower-grid {
+      display: grid;
+      grid-template-columns: 240px 1fr 300px;
+      gap: 10px;
+      height: 250px;
+    }
+
+    /* A/B Crossfader Capsule */
+    .crossfader-capsule {
+      margin: 10px;
+      background: rgba(10, 13, 20, 0.8);
+      border: 1px solid var(--border-glass);
+      border-radius: 6px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .ab-split-bar {
+      height: 8px;
+      width: 100%;
+      border-radius: 4px;
+      background: #141824;
+      display: flex;
+      overflow: hidden;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+    }
+    .ab-part-a {
+      background: var(--accent-mint);
+      width: 65%;
+      box-shadow: 0 0 8px var(--accent-mint-glow);
+    }
+    .ab-part-b {
+      background: var(--accent-lavender);
+      width: 35%;
+      box-shadow: 0 0 8px var(--accent-lavender-glow);
+    }
+    .ab-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      font-weight: 700;
+    }
+    .ab-labels .a-label { color: var(--accent-mint); }
+    .ab-labels .b-label { color: var(--accent-lavender); }
+
+    /* Fader track */
+    .fader-track {
+      position: relative;
+      height: 18px;
+      background: rgba(0,0,0,0.4);
+      border-radius: 9px;
+      border: 1px solid var(--border-glass);
+      cursor: pointer;
+    }
+    .fader-thumb {
+      position: absolute;
+      top: 1px;
+      left: 65%;
+      transform: translateX(-50%);
+      width: 24px;
+      height: 14px;
+      border-radius: 7px;
+      background: radial-gradient(circle at 35% 35%, #fff 0%, #a0aec0 100%);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.7), 0 0 8px rgba(255,255,255,0.4);
+    }
+
+    /* Articulator / Arp Center Card */
+    .art-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .art-toolbar {
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+      border-bottom: 1px solid var(--border-glass);
+      background: rgba(14, 18, 28, 0.5);
+    }
+    .target-tabs {
+      display: flex;
+      gap: 3px;
+    }
+    .target-btn {
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 8.5px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .target-btn.active {
+      background: rgba(251, 191, 36, 0.15);
+      border-color: rgba(251, 191, 36, 0.4);
+      color: var(--accent-honey);
+      box-shadow: 0 0 6px var(--accent-honey-glow);
+    }
+    .preset-chips {
+      display: flex;
+      gap: 3px;
+      margin-left: auto;
+    }
+    .preset-chip {
+      padding: 2px 6px;
+      border-radius: 3px;
+      border: 1px solid var(--border-glass);
+      background: rgba(255,255,255,0.04);
+      color: var(--text-secondary);
+      font-size: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .preset-chip:hover {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+
+    /* Master Output Meters */
+    .master-meter-box {
+      margin: 8px 10px;
+      background: rgba(10, 13, 20, 0.8);
+      border: 1px solid var(--border-glass);
+      border-radius: 6px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .meter-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 8.5px;
+      font-weight: 700;
+    }
+    .meter-lbl {
+      width: 40px;
+      color: var(--text-secondary);
+    }
+    .meter-track {
+      flex: 1;
+      height: 7px;
+      background: #080a10;
+      border-radius: 3.5px;
+      overflow: hidden;
+      position: relative;
+    }
+    .meter-fill-l {
+      height: 100%;
+      width: 68%;
+      background: linear-gradient(90deg, var(--accent-mint) 0%, #48bb78 70%, #ecc94b 90%, var(--accent-rose) 100%);
+      box-shadow: 0 0 6px var(--accent-mint-glow);
+    }
+    .meter-fill-r {
+      height: 100%;
+      width: 65%;
+      background: linear-gradient(90deg, var(--accent-mint) 0%, #48bb78 70%, #ecc94b 90%, var(--accent-rose) 100%);
+      box-shadow: 0 0 6px var(--accent-mint-glow);
+    }
+    .meter-fill-gr {
+      height: 100%;
+      width: 22%;
+      background: var(--accent-honey);
+      float: right;
+      box-shadow: 0 0 6px var(--accent-honey-glow);
+    }
+    .meter-db {
+      width: 44px;
+      text-align: right;
+      color: var(--text-primary);
+      font-family: monospace;
+    }
+
+    /* FX Tab View (Hidden by default, shown when FX tab active) */
+    .fx-tab-view {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      height: 700px;
+    }
+    .fx-chain-strip {
+      height: 42px;
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border-radius: 8px;
+      border: 1px solid var(--border-glass);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      gap: 8px;
+    }
+    .fx-pill {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 9.5px;
+      font-weight: 700;
+      background: rgba(18, 22, 34, 0.9);
+      border: 1px solid var(--border-glass);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: grab;
+    }
+    .fx-pill.active {
+      background: rgba(167, 139, 250, 0.2);
+      border-color: rgba(167, 139, 250, 0.45);
+      color: #fff;
+      box-shadow: 0 0 8px var(--accent-lavender-glow);
+    }
+    .fx-grid-3x3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 10px;
+      flex: 1;
+    }
+
+    /* Mode button toggles inside Card 09 */
+    .mode-tab-bar {
+      display: flex;
+      gap: 4px;
+      background: rgba(10, 13, 20, 0.7);
+      padding: 2px;
+      border-radius: 6px;
+    }
+    .mode-tab-btn {
+      padding: 2px 8px;
+      font-size: 8.5px;
+      font-weight: 700;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .mode-tab-btn.active {
+      background: rgba(251, 191, 36, 0.2);
+      color: #fff;
+      border: 1px solid rgba(251, 191, 36, 0.4);
+    }
+
+    /* Live Scope lines */
+    canvas {
+      display: block;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-void);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2a3144;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Review Banner -->
+  <div class="preview-header-banner">
+    <div>
+      <span class="badge-pill">CONCEPT C : OBSIDIAN GLASS</span>
+      <span style="margin-left: 8px;">Clean, modern, and less cluttered aesthetic draft for <strong>Prismor 1.0.4</strong></span>
+    </div>
+    <div style="color: var(--text-secondary); font-size: 11px;">
+      Interactive Draft &bull; Drag knobs vertically to test &bull; Click Tabs to toggle views
+    </div>
+  </div>
+
+  <!-- Plugin Main Frame -->
+  <div class="plugin-window">
+    
+    <!-- Top Bar -->
+    <header class="top-bar">
+      <div class="brand-logo">
+        <svg viewBox="0 0 24 24" fill="none">
+          <polygon points="12,2 2,22 22,22" stroke="var(--accent-mint)" stroke-width="2.2" stroke-linejoin="round" />
+          <line x1="12" y1="11" x2="19" y2="17" stroke="var(--accent-lavender)" stroke-width="1.8" stroke-linecap="round" />
+        </svg>
+        <span class="brand-title">PRISMOR</span>
+        <span class="brand-version">1.0.4</span>
+        <span class="brand-subtitle">Spectral Resynthesis Engine</span>
+      </div>
+
+      <nav class="tab-nav">
+        <button id="btn-tab-synth" class="tab-btn active" onclick="switchMainTab('synth')">SYNTH ENGINE</button>
+        <button id="btn-tab-fx" class="tab-btn" onclick="switchMainTab('fx')">DYNAMIC FX RACK [9]</button>
+      </nav>
+
+      <div class="active-layer-pill">
+        <div class="pulse-dot"></div>
+        <span id="active-layer-text">ACTIVE LAYER: FIELD 1 [PART A]</span>
+      </div>
+
+      <select class="theme-dropdown" onchange="alert('Theme preview: Concept C Obsidian Glass is the active design.')">
+        <option>Obsidian Glass (Concept C)</option>
+        <option>Nord Frost Blue</option>
+        <option>Cyberpunk Pink/Blue</option>
+        <option>Monochrome OLED</option>
+      </select>
+    </header>
+
+    <!-- WORKSPACE: SYNTH ENGINE VIEW -->
+    <main id="synth-view" class="workspace">
+      
+      <!-- Upper Section Grid -->
+      <section class="upper-grid">
+        
+        <!-- Left Quad: Field 1, Field 2, Prism & Voicing -->
+        <div class="left-quad">
+          
+          <!-- Card 01: Field 1 [Part A] -->
+          <article class="glass-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <div class="card-pip"></div>
+                <h3 class="card-title">01 // Frequency Field 1 [Part A]</h3>
+              </div>
+              <div class="header-actions">
+                <button class="glass-toggle active"><div class="toggle-led"></div> ON</button>
+              </div>
+            </div>
+            
+            <!-- Serum 2 Style Pitch Strip -->
+            <div class="pitch-strip">
+              <div class="pitch-box"><span class="pitch-label">OCT</span><span class="pitch-val">0</span></div>
+              <div class="pitch-box"><span class="pitch-label">SEMI</span><span class="pitch-val">0</span></div>
+              <div class="pitch-box"><span class="pitch-label">FIN</span><span class="pitch-val">+0c</span></div>
+              <div class="pitch-box"><span class="pitch-label">CRS</span><span class="pitch-val">+0.0</span></div>
+            </div>
+
+            <div class="knob-grid-3x2" style="flex: 1;">
+              <div class="knob-widget" data-val="0.2"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-mint)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="65" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(-35deg);"></div></div></div><span class="knob-label">Phase A</span></div>
+              <div class="knob-widget" data-val="0.0"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-mint)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="94.2" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(-135deg);"></div></div></div><span class="knob-label">Random</span></div>
+              <div class="knob-widget" data-val="0.15"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-mint)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="75" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(-50deg);"></div></div></div><span class="knob-label">Vibrato</span></div>
+              <div class="knob-widget" data-val="0.5"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-mint)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="47" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(0deg);"></div></div></div><span class="knob-label">Scale A</span></div>
+              <div class="knob-widget" data-val="0.5"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-honey)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="47" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(0deg);"></div></div></div><span class="knob-label">Tilt A</span></div>
+              <div class="knob-widget" data-val="0.4"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-mint)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="55" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(-15deg);"></div></div></div><span class="knob-label">Warp A</span></div>
+            </div>
+
+            <div style="padding: 4px 8px 6px 8px;">
+              <select class="glass-select"><option>WARP: BEND +/-</option><option>WARP: MIRROR</option><option>WARP: QUANTIZE</option></select>
+            </div>
+          </article>
+
+          <!-- Card 02: Field 2 [Part B] -->
+          <article class="glass-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <div class="card-pip lavender"></div>
+                <h3 class="card-title">02 // Frequency Field 2 [Part B]</h3>
+              </div>
+              <div class="header-actions">
+                <button class="glass-toggle lavender active"><div class="toggle-led"></div> ON</button>
+              </div>
+            </div>
+
+            <div class="pitch-strip">
+              <div class="pitch-box lavender"><span class="pitch-label">OCT</span><span class="pitch-val">+1</span></div>
+              <div class="pitch-box lavender"><span class="pitch-label">SEMI</span><span class="pitch-val">+7</span></div>
+              <div class="pitch-box lavender"><span class="pitch-label">FIN</span><span class="pitch-val">+8c</span></div>
+              <div class="pitch-box lavender"><span class="pitch-label">CRS</span><span class="pitch-val">+0.0</span></div>
+            </div>
+
+            <div class="knob-grid-3x2" style="flex: 1;">
+              <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-lavender)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="50" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(10deg);"></div></div></div><span class="knob-label">Vib Spd</span></div>
+              <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-lavender)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="65" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(-35deg);"></div></div></div><span class="knob-label">Phase B</span></div>
+              <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-honey)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="70" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(-45deg);"></div></div></div><span class="knob-label">Pluck</span></div>
+              <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-lavender)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="45" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(5deg);"></div></div></div><span class="knob-label">Scale B</span></div>
+              <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-honey)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="47" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(0deg);"></div></div></div><span class="knob-label">Tilt B</span></div>
+              <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-lavender)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="94" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(-135deg);"></div></div></div><span class="knob-label">Warp B</span></div>
+            </div>
+
+            <div style="padding: 4px 8px 6px 8px;">
+              <select class="glass-select"><option>WARP: OFF</option><option>WARP: BEND +/-</option><option>WARP: ASYMMETRIC</option></select>
+            </div>
+          </article>
+
+          <!-- Card 03: Prism & Harmonizer -->
+          <article class="glass-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <div class="card-pip lavender"></div>
+                <h3 class="card-title">03 // Prism & Harmonizer</h3>
+              </div>
+              <button class="glass-toggle lavender active"><div class="toggle-led"></div> ON</button>
+            </div>
+            <div style="display: flex; height: 100%; padding: 8px;">
+              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+                <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-lavender)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="60" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(-20deg);"></div></div></div><span class="knob-label">Prism Amt</span></div>
+                <select class="glass-select" style="font-size: 8.5px;"><option>INHARMONIC</option><option>HZ SHIFT</option></select>
+              </div>
+              <div style="flex: 2; display: flex; justify-content: space-around; align-items: flex-end; padding-bottom: 8px;">
+                <div style="display:flex; flex-direction:column; align-items:center; gap:4px;"><div style="width: 8px; height: 80px; background: rgba(0,0,0,0.5); border-radius: 4px; border: 1px solid var(--border-glass); position: relative;"><div style="position: absolute; bottom: 0; width: 100%; height: 45%; background: var(--accent-lavender); border-radius: 4px;"></div></div><span class="knob-label">Shift</span></div>
+                <div style="display:flex; flex-direction:column; align-items:center; gap:4px;"><div style="width: 8px; height: 80px; background: rgba(0,0,0,0.5); border-radius: 4px; border: 1px solid var(--border-glass); position: relative;"><div style="position: absolute; bottom: 0; width: 100%; height: 25%; background: var(--accent-lavender); border-radius: 4px;"></div></div><span class="knob-label">Gap</span></div>
+                <div style="display:flex; flex-direction:column; align-items:center; gap:4px;"><div style="width: 8px; height: 80px; background: rgba(0,0,0,0.5); border-radius: 4px; border: 1px solid var(--border-glass); position: relative;"><div style="position: absolute; bottom: 0; width: 100%; height: 60%; background: var(--accent-lavender); border-radius: 4px;"></div></div><span class="knob-label">Width</span></div>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 04: Voicing & Unison -->
+          <article class="glass-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <div class="card-pip"></div>
+                <h3 class="card-title">04 // Voicing & 16x Unison</h3>
+              </div>
+              <div class="header-actions">
+                <button class="glass-toggle honey active" style="font-size: 8px;"><div class="toggle-led" style="background:var(--accent-honey);"></div> AUTO GLIDE</button>
+              </div>
+            </div>
+            <div style="padding: 4px 8px; display: flex; flex-direction: column; gap: 4px; height: 100%;">
+              <div style="display: flex; gap: 4px;">
+                <select class="glass-select" style="flex:1;"><option>TRUE LEGATO</option><option>POLYPHONIC</option><option>MONO</option></select>
+                <select class="glass-select" style="flex:1;"><option>STACK: 1x NORMAL</option><option>STACK: +1 OCT</option><option>STACK: FIFTHS</option></select>
+              </div>
+              
+              <!-- 4 Voicing Knobs -->
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); justify-items: center; align-items: center; margin-top: 2px;">
+                <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-mint)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="65" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(-35deg);"></div></div></div><span class="knob-label">Voices</span></div>
+                <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-mint)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="47" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(0deg);"></div></div></div><span class="knob-label">Pitch ST</span></div>
+                <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-honey)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="75" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(-60deg);"></div></div></div><span class="knob-label">Glide</span></div>
+                <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-honey)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="47" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(0deg);"></div></div></div><span class="knob-label">Curve</span></div>
+              </div>
+
+              <!-- 5 Unison Knobs -->
+              <div style="display: grid; grid-template-columns: repeat(5, 1fr); justify-items: center; align-items: center; margin-top: 2px;">
+                <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-lavender)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="30" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(45deg);"></div></div></div><span class="knob-label">Voices</span></div>
+                <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-lavender)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="65" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(-35deg);"></div></div></div><span class="knob-label">Detune</span></div>
+                <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-lavender)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="40" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(20deg);"></div></div></div><span class="knob-label">Spread</span></div>
+                <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-honey)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="47" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(0deg);"></div></div></div><span class="knob-label">Blend</span></div>
+                <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-lavender)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="60" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(-20deg);"></div></div></div><span class="knob-label">Phase</span></div>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <!-- Center Quad: Dual Filter & Serum-2 Noise Generator -->
+        <div class="center-quad">
+          
+          <!-- Card 05: Dual Filter, Vox & Talkbox -->
+          <article class="glass-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <div class="card-pip"></div>
+                <h3 class="card-title">05 // Dual Filter, Vox & Talkbox</h3>
+              </div>
+              <select class="glass-select" style="width: 140px; font-size: 8.5px;">
+                <option>Talkbox Wow Lead</option>
+                <option>Reese Sub Lowpass</option>
+                <option>Vocal Choir (A-E-I-O-U)</option>
+                <option>Robotic Vocoder Bank</option>
+              </select>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; padding: 6px 10px; gap: 8px;">
+              <!-- Filter 1 -->
+              <div style="background: rgba(14,18,28,0.5); border-radius: 6px; padding: 6px; border: 1px solid var(--border-glass);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                  <button class="glass-toggle active"><div class="toggle-led"></div> F1 ON</button>
+                  <select class="glass-select" style="width: 180px;"><option>SVF LP 24dB</option><option>VOX FORMANT (A-E-I-O-U)</option><option>TALKBOX MODE</option></select>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); justify-items: center;">
+                  <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-mint)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="40" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(20deg);"></div></div></div><span class="knob-label">Cutoff</span></div>
+                  <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-mint)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="55" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(-10deg);"></div></div></div><span class="knob-label">Res</span></div>
+                  <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-mint)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="65" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(-35deg);"></div></div></div><span class="knob-label">Keytrk</span></div>
+                  <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-mint)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="45" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(10deg);"></div></div></div><span class="knob-label">Width</span></div>
+                </div>
+              </div>
+
+              <!-- Filter 2 & Routing -->
+              <div style="background: rgba(14,18,28,0.5); border-radius: 6px; padding: 6px; border: 1px solid var(--border-glass);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                  <button class="glass-toggle honey active"><div class="toggle-led" style="background:var(--accent-honey);"></div> F2 ON</button>
+                  <select class="glass-select" style="width: 180px;"><option>CRUDE LOW PASS</option><option>COMB FILTER</option><option>VOCODER BAND-BANK</option></select>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr) 1fr 1fr; justify-items: center;">
+                  <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-honey)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="50" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(5deg);"></div></div></div><span class="knob-label">Cutoff</span></div>
+                  <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-honey)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="70" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(-45deg);"></div></div></div><span class="knob-label">Res</span></div>
+                  <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-honey)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="65" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(-35deg);"></div></div></div><span class="knob-label">Keytrk</span></div>
+                  <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-honey)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="45" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(10deg);"></div></div></div><span class="knob-label">Width</span></div>
+                  <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-lavender)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="47" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(0deg);"></div></div></div><span class="knob-label">Ser/Par</span></div>
+                  <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-honey)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="65" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(-35deg);"></div></div></div><span class="knob-label">Drive</span></div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 06: Dedicated Serum-2 Style Noise Generator -->
+          <article class="glass-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <div class="card-pip" style="background:var(--accent-emerald);"></div>
+                <h3 class="card-title">06 // Serum-2 Noise Generator</h3>
+              </div>
+              <button class="glass-toggle active"><div class="toggle-led" style="background:var(--accent-emerald);"></div> NOISE ON</button>
+            </div>
+            
+            <div style="padding: 6px 10px; display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <select class="glass-select" style="width: 170px;"><option>WHITE NOISE</option><option>PINK NOISE</option><option>VINYL CRACKLE</option><option>DIGITAL BITNOISE</option></select>
+                <!-- Mini Noise Canvas -->
+                <canvas id="noiseScope" width="180" height="20" style="border-radius: 4px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-glass);"></canvas>
+              </div>
+
+              <div style="display: grid; grid-template-columns: repeat(6, 1fr); justify-items: center; align-items: center;">
+                <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-mint)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="65" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(-35deg);"></div></div></div><span class="knob-label">Level</span></div>
+                <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-mint)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="47" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(0deg);"></div></div></div><span class="knob-label">Pitch</span></div>
+                <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-honey)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="47" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(0deg);"></div></div></div><span class="knob-label">Keytrk</span></div>
+                <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-mint)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="75" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(-60deg);"></div></div></div><span class="knob-label">Phase</span></div>
+                <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-lavender)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="47" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(0deg);"></div></div></div><span class="knob-label">Pan</span></div>
+                <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-honey)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="47" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(0deg);"></div></div></div><span class="knob-label">LP / HP</span></div>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <!-- Right Panel: Dual 3D Frequency Fields Visualizer + Deep Harmonic Sculptor -->
+        <article class="glass-card vis-container">
+          <div class="card-header">
+            <div class="card-title-group">
+              <div class="card-pip"></div>
+              <h3 class="card-title" id="vis-title">Dual 3D Frequency Fields [F1 + F2]</h3>
+            </div>
+            <div class="vis-view-toggle">
+              <button id="btn-3d" class="view-btn active" onclick="setVisMode('3d')">3D VIEW</button>
+              <button id="btn-2d" class="view-btn" onclick="setVisMode('2d')">2D VIEW</button>
+            </div>
+          </div>
+
+          <!-- Main Interactive Canvas -->
+          <canvas id="visualizerCanvas" class="vis-canvas" width="410" height="270"></canvas>
+
+          <!-- Harmonic Sculptor Quick-Bar -->
+          <div class="harmonic-tools-bar">
+            <button class="tool-chip active">FIELD 1 [A]</button>
+            <button class="tool-chip">FIELD 2 [B]</button>
+            <span style="border-right: 1px solid var(--border-glass); height: 14px; margin: 0 4px;"></span>
+            <button class="tool-chip">SAW</button>
+            <button class="tool-chip">SQR</button>
+            <button class="tool-chip">TRI</button>
+            <button class="tool-chip">FMT</button>
+            <button class="tool-chip">ODD+</button>
+            <button class="tool-chip">EVEN+</button>
+            <button class="tool-chip">SMOOTH</button>
+          </div>
+
+          <!-- Live Partial Sculptor Canvas -->
+          <canvas id="harmonicSculptCanvas" width="410" height="95" style="background: rgba(8,10,16,0.95); cursor: crosshair;"></canvas>
+        </article>
+      </section>
+
+      <!-- Lower Section Grid: A/B Layer, Articulator/Arp, Master Out -->
+      <section class="lower-grid">
+        
+        <!-- Card 08: A/B Layer & Mix Routing -->
+        <article class="glass-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <div class="card-pip"></div>
+              <h3 class="card-title">08 // A/B Layer & Mix</h3>
+            </div>
+          </div>
+
+          <div style="padding: 8px; display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+            <div style="display: flex; gap: 4px;">
+              <button class="glass-toggle active" style="flex:1; justify-content:center;">EDIT PART A</button>
+              <button class="glass-toggle lavender" style="flex:1; justify-content:center;">EDIT PART B</button>
+              <button class="glass-toggle honey" style="width: 44px; justify-content:center;">A > B</button>
+            </div>
+
+            <!-- Visual Crossfade Capsule -->
+            <div class="crossfader-capsule">
+              <div class="ab-labels">
+                <span class="a-label">PART A: 65%</span>
+                <span class="b-label">PART B: 35%</span>
+              </div>
+              <div class="ab-split-bar">
+                <div class="ab-part-a"></div>
+                <div class="ab-part-b"></div>
+              </div>
+              <div class="fader-track">
+                <div class="fader-thumb"></div>
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-around; align-items: center; margin-bottom: 4px;">
+              <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-mint)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="65" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(-35deg);"></div></div></div><span class="knob-label">Vel Link</span></div>
+              <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-lavender)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="47" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(0deg);"></div></div></div><span class="knob-label">Panning</span></div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Card 09: Switchable ShaperBox Articulator vs Hive-2 Arpeggiator -->
+        <article class="glass-card art-container">
+          <div class="card-header">
+            <div class="card-title-group">
+              <div class="card-pip honey"></div>
+              <h3 class="card-title" id="art-mode-title">09 // ShaperBox Graphical Articulator</h3>
+            </div>
+            
+            <div class="header-actions">
+              <div class="mode-tab-bar">
+                <button id="btn-mode-art" class="mode-tab-btn active" onclick="setBottomMode('art')">SHAPER ARTICULATOR</button>
+                <button id="btn-mode-arp" class="mode-tab-btn" onclick="setBottomMode('arp')">ARP & 16-STEP SEQ</button>
+              </div>
+              <button class="glass-toggle active" style="font-size: 8px;"><div class="toggle-led"></div> ARP ON</button>
+            </div>
+          </div>
+
+          <!-- Articulator Sub-Toolbar -->
+          <div id="art-sub-bar" class="art-toolbar">
+            <div class="target-tabs">
+              <button class="target-btn active">VOLUME</button>
+              <button class="target-btn">PITCH</button>
+              <button class="target-btn">FILTER 1</button>
+              <button class="target-btn">CUSTOM</button>
+              <button class="target-btn">TIMBRE</button>
+              <button class="target-btn">PRISM</button>
+            </div>
+            <div class="preset-chips">
+              <span class="preset-chip">SIDECHAIN</span>
+              <span class="preset-chip">TRANCE GATE</span>
+              <span class="preset-chip">STUTTER</span>
+              <span class="preset-chip">SAW RAMP</span>
+              <span class="preset-chip">TRIPLET</span>
+            </div>
+          </div>
+
+          <!-- Articulator Interactive Canvas -->
+          <canvas id="articulatorCanvas" width="670" height="180" style="flex:1; background: rgba(9,11,18,0.9); cursor: crosshair;"></canvas>
+        </article>
+
+        <!-- Card 10: Master Output, Limiter & Preset Quick-Browser -->
+        <article class="glass-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <div class="card-pip" style="background:var(--accent-mint);"></div>
+              <h3 class="card-title">10 // Master Output & Limiter</h3>
+            </div>
+            <button class="glass-toggle active"><div class="toggle-led"></div> LIMITER</button>
+          </div>
+
+          <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100%; padding: 8px;">
+            <!-- Preset Quick-Browser -->
+            <div style="display: flex; gap: 4px; align-items: center;">
+              <button class="glass-toggle" style="width: 22px; justify-content:center;">&lt;</button>
+              <select class="glass-select" style="flex:1; font-weight:700;">
+                <option>01. LEAD // Warm Legato Lead</option>
+                <option>04. SAW // 16x Unison Hypersaw</option>
+                <option>14. ARP // Cyber Arp 2077</option>
+                <option>16. BASS // OTT Monster Growl</option>
+              </select>
+              <button class="glass-toggle" style="width: 22px; justify-content:center;">&gt;</button>
+              <button class="glass-toggle honey" style="width: 38px; justify-content:center;">INIT</button>
+            </div>
+
+            <!-- Real-Time Peak / RMS & GR Meters -->
+            <div class="master-meter-box">
+              <div class="meter-row">
+                <span class="meter-lbl">OUT L</span>
+                <div class="meter-track"><div class="meter-fill-l"></div></div>
+                <span class="meter-db">-8.4 dB</span>
+              </div>
+              <div class="meter-row">
+                <span class="meter-lbl">OUT R</span>
+                <div class="meter-track"><div class="meter-fill-r"></div></div>
+                <span class="meter-db">-7.2 dB</span>
+              </div>
+              <div class="meter-row">
+                <span class="meter-lbl">LIM GR</span>
+                <div class="meter-track"><div class="meter-fill-gr"></div></div>
+                <span class="meter-db">-1.6 dB</span>
+              </div>
+            </div>
+
+            <!-- Master Knobs Row -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); justify-items: center; align-items: center;">
+              <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-mint)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="65" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(-35deg);"></div></div></div><span class="knob-label">Strum</span></div>
+              <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-mint)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="47" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(0deg);"></div></div></div><span class="knob-label">Slope</span></div>
+              <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-honey)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="47" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(0deg);"></div></div></div><span class="knob-label">Master dB</span></div>
+              <div class="knob-widget"><div class="knob-ring"><svg class="knob-svg" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="var(--bg-track)" stroke-width="2.5"/><circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent-rose)" stroke-width="2.5" stroke-dasharray="94.2" stroke-dashoffset="30" stroke-linecap="round"/></svg><div class="knob-cap"><div class="knob-indicator" style="transform: rotate(45deg);"></div></div></div><span class="knob-label">Ceiling</span></div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+    </main>
+
+    <!-- WORKSPACE: DYNAMIC FX RACK TAB VIEW -->
+    <main id="fx-view" class="workspace fx-tab-view">
+      
+      <!-- Top Signal Chain Reordering Strip -->
+      <div class="fx-chain-strip">
+        <span style="font-size: 10px; font-weight: 700; color: var(--accent-lavender); letter-spacing: 0.6px;">REORDERABLE SIGNAL CHAIN:</span>
+        <div class="fx-pill active">1. BLUR</div>
+        <div class="fx-pill active">2. TREMOLO</div>
+        <div class="fx-pill active">3. DISTORTION</div>
+        <div class="fx-pill active">4. PHASER</div>
+        <div class="fx-pill active">5. CHORUS</div>
+        <div class="fx-pill active">6. PARAM EQ</div>
+        <div class="fx-pill active">7. DELAY</div>
+        <div class="fx-pill active">8. REVERB</div>
+        <div class="fx-pill active" style="border-color: var(--accent-mint); color: var(--accent-mint);">9. OTT COMP</div>
+        
+        <div style="margin-left: auto; display: flex; gap: 4px;">
+          <button class="glass-toggle" style="color: var(--accent-mint); border-color: rgba(56,225,176,0.3);">+ ADD FX</button>
+          <button class="glass-toggle" style="color: var(--accent-rose);">X REMOVE</button>
+          <button class="glass-toggle">&lt; L</button>
+          <button class="glass-toggle">R &gt;</button>
+          <button class="glass-toggle honey">DEFAULT</button>
+        </div>
+      </div>
+
+      <!-- 3x3 Dynamic FX Rack Grid -->
+      <div class="fx-grid-3x3">
+        
+        <!-- FX 0: Blur & Pluck -->
+        <article class="glass-card">
+          <div class="card-header"><div class="card-title-group"><div class="card-pip honey"></div><h3 class="card-title">FX 1 // Spectral Blur & Pluck</h3></div><button class="glass-toggle active"><div class="toggle-led"></div> ON</button></div>
+          <div class="knob-grid-3x2" style="flex:1;"><div class="knob-widget"><span class="knob-label">Time Blur</span></div><div class="knob-widget"><span class="knob-label">Harm Blur</span></div><div class="knob-widget"><span class="knob-label">Pluck Time</span></div><div class="knob-widget"><span class="knob-label">Pluck Blur</span></div></div>
+        </article>
+
+        <!-- FX 1: Tremolo -->
+        <article class="glass-card">
+          <div class="card-header"><div class="card-title-group"><div class="card-pip"></div><h3 class="card-title">FX 2 // Harmonic Tremolo</h3></div><button class="glass-toggle active"><div class="toggle-led"></div> ON</button></div>
+          <div class="knob-grid-3x2" style="flex:1;"><div class="knob-widget"><span class="knob-label">Depth</span></div><div class="knob-widget"><span class="knob-label">Speed</span></div><div class="knob-widget"><span class="knob-label">Stereo Gap</span></div></div>
+        </article>
+
+        <!-- FX 2: Distortion / Wavefolder -->
+        <article class="glass-card">
+          <div class="card-header"><div class="card-title-group"><div class="card-pip lavender"></div><h3 class="card-title">FX 3 // Distortion / Wavefolder</h3></div><button class="glass-toggle lavender active"><div class="toggle-led"></div> ON</button></div>
+          <div style="padding: 6px; display: flex; gap: 4px;"><select class="glass-select"><option>TUBE SAT</option><option>WAVEFOLD</option><option>HARD CLIP</option></select><select class="glass-select"><option>Warm Tube Saturation</option><option>Screaming Acid Drive</option></select></div>
+          <div class="knob-grid-3x2" style="flex:1;"><div class="knob-widget"><span class="knob-label">Drive</span></div><div class="knob-widget"><span class="knob-label">Tone</span></div><div class="knob-widget"><span class="knob-label">Mix</span></div></div>
+        </article>
+
+        <!-- FX 3: Spectral Phaser -->
+        <article class="glass-card">
+          <div class="card-header"><div class="card-title-group"><div class="card-pip lavender"></div><h3 class="card-title">FX 4 // Spectral Phaser</h3></div><button class="glass-toggle lavender active"><div class="toggle-led"></div> ON</button></div>
+          <div class="knob-grid-3x2" style="flex:1;"><div class="knob-widget"><span class="knob-label">Mix</span></div><div class="knob-widget"><span class="knob-label">Speed</span></div><div class="knob-widget"><span class="knob-label">Width</span></div><div class="knob-widget"><span class="knob-label">Offset</span></div></div>
+        </article>
+
+        <!-- FX 4: Multi-Voice Chorus -->
+        <article class="glass-card">
+          <div class="card-header"><div class="card-title-group"><div class="card-pip"></div><h3 class="card-title">FX 5 // Multi-Voice Chorus</h3></div><button class="glass-toggle active"><div class="toggle-led"></div> ON</button></div>
+          <div class="knob-grid-3x2" style="flex:1;"><div class="knob-widget"><span class="knob-label">Voices</span></div><div class="knob-widget"><span class="knob-label">Rate</span></div><div class="knob-widget"><span class="knob-label">Depth</span></div><div class="knob-widget"><span class="knob-label">Spread</span></div><div class="knob-widget"><span class="knob-label">Mix</span></div></div>
+        </article>
+
+        <!-- FX 5: 3-Band Parametric EQ -->
+        <article class="glass-card">
+          <div class="card-header"><div class="card-title-group"><div class="card-pip honey"></div><h3 class="card-title">FX 6 // 3-Band Parametric EQ</h3></div><button class="glass-toggle active"><div class="toggle-led"></div> ON</button></div>
+          <canvas id="eqCurveCanvas" width="380" height="40" style="margin: 4px 8px; border-radius: 4px; background: rgba(0,0,0,0.5);"></canvas>
+          <div class="knob-grid-3x2" style="flex:1; grid-template-columns: repeat(6, 1fr);"><div class="knob-widget"><span class="knob-label">Low dB</span></div><div class="knob-widget"><span class="knob-label">Low Hz</span></div><div class="knob-widget"><span class="knob-label">Mid dB</span></div><div class="knob-widget"><span class="knob-label">Mid Hz</span></div><div class="knob-widget"><span class="knob-label">High dB</span></div><div class="knob-widget"><span class="knob-label">High Hz</span></div></div>
+        </article>
+
+        <!-- FX 6: Ping-Pong Delay -->
+        <article class="glass-card">
+          <div class="card-header"><div class="card-title-group"><div class="card-pip honey"></div><h3 class="card-title">FX 7 // Ping-Pong Delay</h3></div><button class="glass-toggle active"><div class="toggle-led"></div> ON</button></div>
+          <div class="knob-grid-3x2" style="flex:1;"><div class="knob-widget"><span class="knob-label">Time/Sync</span></div><div class="knob-widget"><span class="knob-label">Feedback</span></div><div class="knob-widget"><span class="knob-label">Ping-Pong</span></div><div class="knob-widget"><span class="knob-label">Damping</span></div><div class="knob-widget"><span class="knob-label">Mix</span></div></div>
+        </article>
+
+        <!-- FX 7: Shimmer Hall Reverb -->
+        <article class="glass-card">
+          <div class="card-header"><div class="card-title-group"><div class="card-pip" style="background:var(--accent-emerald);"></div><h3 class="card-title">FX 8 // Shimmer Hall Reverb</h3></div><button class="glass-toggle active"><div class="toggle-led"></div> ON</button></div>
+          <div class="knob-grid-3x2" style="flex:1;"><div class="knob-widget"><span class="knob-label">Size</span></div><div class="knob-widget"><span class="knob-label">Decay</span></div><div class="knob-widget"><span class="knob-label">Pre-Dly</span></div><div class="knob-widget"><span class="knob-label">Damping</span></div><div class="knob-widget"><span class="knob-label">Shimmer</span></div><div class="knob-widget"><span class="knob-label">Mix</span></div></div>
+        </article>
+
+        <!-- FX 8: Multiband OTT / VCA Compressor -->
+        <article class="glass-card" style="border-color: rgba(56, 225, 176, 0.35);">
+          <div class="card-header"><div class="card-title-group"><div class="card-pip" style="background:var(--accent-mint);"></div><h3 class="card-title">FX 9 // Multiband OTT / VCA Comp</h3></div><button class="glass-toggle active"><div class="toggle-led"></div> ON</button></div>
+          <div style="padding: 4px 8px;"><select class="glass-select"><option>MULTIBAND OTT</option><option>SINGLE VCA</option><option>OPTO SMOOTH</option><option>PUNCH LIMIT</option></select></div>
+          <div class="knob-grid-3x2" style="flex:1;"><div class="knob-widget"><span class="knob-label">Thresh</span></div><div class="knob-widget"><span class="knob-label">Ratio</span></div><div class="knob-widget"><span class="knob-label">Attack</span></div><div class="knob-widget"><span class="knob-label">Release</span></div><div class="knob-widget"><span class="knob-label">Makeup</span></div><div class="knob-widget"><span class="knob-label">Mix</span></div></div>
+        </article>
+
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Interactive Demo Logic & Visualizers -->
+  <script>
+    let currentVisMode = '3d';
+    let currentBottomMode = 'art';
+
+    function switchMainTab(tab) {
+      const synthView = document.getElementById('synth-view');
+      const fxView = document.getElementById('fx-view');
+      const btnSynth = document.getElementById('btn-tab-synth');
+      const btnFx = document.getElementById('btn-tab-fx');
+
+      if (tab === 'synth') {
+        synthView.style.display = 'flex';
+        fxView.style.display = 'none';
+        btnSynth.className = 'tab-btn active';
+        btnFx.className = 'tab-btn';
+      } else {
+        synthView.style.display = 'none';
+        fxView.style.display = 'flex';
+        btnSynth.className = 'tab-btn';
+        btnFx.className = 'tab-btn fx-active';
+        drawEqCurve();
+      }
+    }
+
+    function setVisMode(mode) {
+      currentVisMode = mode;
+      document.getElementById('btn-3d').className = mode === '3d' ? 'view-btn active' : 'view-btn';
+      document.getElementById('btn-2d').className = mode === '2d' ? 'view-btn active' : 'view-btn';
+      document.getElementById('vis-title').textContent = mode === '3d' ? 'Dual 3D Frequency Fields [F1 + F2]' : '2D Spectral & Waveform Analyzer';
+    }
+
+    function setBottomMode(mode) {
+      currentBottomMode = mode;
+      document.getElementById('btn-mode-art').className = mode === 'art' ? 'mode-tab-btn active' : 'mode-tab-btn';
+      document.getElementById('btn-mode-arp').className = mode === 'arp' ? 'mode-tab-btn active' : 'mode-tab-btn';
+      document.getElementById('art-mode-title').textContent = mode === 'art' ? '09 // ShaperBox Graphical Articulator' : '09 // Hive-2 Arpeggiator & 16-Step Seq';
+      document.getElementById('art-sub-bar').style.display = mode === 'art' ? 'flex' : 'none';
+    }
+
+    // 1. Noise Scope Simulation
+    const noiseCanvas = document.getElementById('noiseScope');
+    if (noiseCanvas) {
+      const ctx = noiseCanvas.getContext('2d');
+      let nPhase = 0;
+      function drawNoise() {
+        ctx.clearRect(0, 0, noiseCanvas.width, noiseCanvas.height);
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        for (let x = 0; x < noiseCanvas.width; x += 3) {
+          const y = 10 + Math.sin(x * 0.15 + nPhase) * Math.cos(x * 0.4 - nPhase) * 7;
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        nPhase += 0.08;
+        requestAnimationFrame(drawNoise);
+      }
+      drawNoise();
+    }
+
+    // 2. 3D Waterfall & 2D Spectral Visualizer Canvas
+    const visCanvas = document.getElementById('visualizerCanvas');
+    const vCtx = visCanvas.getContext('2d');
+    let vStep = 0;
+
+    function renderVis() {
+      vCtx.clearRect(0, 0, visCanvas.width, visCanvas.height);
+      const W = visCanvas.width;
+      const H = visCanvas.height;
+
+      if (currentVisMode === '3d') {
+        // Obsidian Glass Waterfall Wireframe
+        const numSlices = 14;
+        for (let s = numSlices - 1; s >= 0; s--) {
+          const depth = s / numSlices;
+          const yOffset = 45 + s * 14;
+          const xOffset = 25 + s * 8;
+          const sliceW = W - 50 - s * 14;
+
+          vCtx.beginPath();
+          const alpha = 0.18 + (1 - depth) * 0.75;
+          vCtx.strokeStyle = s === 0 ? '#38e1b0' : `rgba(167, 139, 250, ${alpha * 0.45})`;
+          vCtx.lineWidth = s === 0 ? 2 : 1;
+
+          for (let i = 0; i <= 36; i++) {
+            const u = i / 36;
+            const px = xOffset + u * sliceW;
+            const peak1 = Math.exp(-Math.pow((u - 0.28), 2) * 28) * (0.85 + Math.sin(vStep * 0.04 - s * 0.4) * 0.15);
+            const peak2 = Math.exp(-Math.pow((u - 0.65), 2) * 20) * 0.55;
+            const py = yOffset - (peak1 + peak2) * (1 - depth * 0.4) * 85;
+
+            if (i === 0) vCtx.moveTo(px, py);
+            else vCtx.lineTo(px, py);
+          }
+          vCtx.stroke();
+        }
+      } else {
+        // 2D High-Precision Spectral Analyzer with Soft Neon Fill
+        const numBars = 48;
+        const bW = (W - 40) / numBars;
+        for (let i = 0; i < numBars; i++) {
+          const u = i / numBars;
+          const h1 = Math.pow(1 - u * 0.7, 1.4) * (0.6 + Math.sin(u * 12 + vStep * 0.05) * 0.35) * (H - 50);
+          const x = 20 + i * bW;
+          const y = H - 20 - h1;
+
+          // Glowing stem
+          vCtx.fillStyle = 'rgba(56, 225, 176, 0.4)';
+          vCtx.fillRect(x, y, bW - 2, h1);
+          vCtx.fillStyle = '#38e1b0';
+          vCtx.fillRect(x, y, bW - 2, 2.5);
+        }
+
+        // 2D Waveform scope inset
+        vCtx.strokeStyle = '#fbbf24';
+        vCtx.lineWidth = 1.6;
+        vCtx.beginPath();
+        for (let x = 0; x < 90; x++) {
+          const wy = 45 + Math.sin(x * 0.18 + vStep * 0.08) * 14 * Math.cos(x * 0.05);
+          if (x === 0) vCtx.moveTo(W - 110 + x, wy);
+          else vCtx.lineTo(W - 110 + x, wy);
+        }
+        vCtx.stroke();
+      }
+
+      vStep++;
+      requestAnimationFrame(renderVis);
+    }
+    renderVis();
+
+    // 3. Harmonic Partial Sculptor Canvas
+    const hCanvas = document.getElementById('harmonicSculptCanvas');
+    const hCtx = hCanvas.getContext('2d');
+    function drawPartials() {
+      hCtx.clearRect(0, 0, hCanvas.width, hCanvas.height);
+      const N = 40;
+      const bW = hCanvas.width / N;
+      for (let i = 0; i < N; i++) {
+        const u = i / N;
+        const barH = Math.pow(1 - u * 0.85, 1.2) * (hCanvas.height - 15);
+        const x = i * bW;
+        const y = hCanvas.height - barH;
+
+        hCtx.fillStyle = i % 2 === 0 ? 'rgba(56, 225, 176, 0.55)' : 'rgba(167, 139, 250, 0.55)';
+        hCtx.fillRect(x + 1, y, bW - 2, barH);
+        hCtx.fillStyle = '#fff';
+        hCtx.fillRect(x + 1, y, bW - 2, 1.5);
+      }
+    }
+    drawPartials();
+
+    // 4. ShaperBox Articulator Spline Canvas
+    const artCanvas = document.getElementById('articulatorCanvas');
+    const aCtx = artCanvas.getContext('2d');
+    let aCursor = 0;
+
+    function renderArt() {
+      aCtx.clearRect(0, 0, artCanvas.width, artCanvas.height);
+      const W = artCanvas.width;
+      const H = artCanvas.height;
+
+      // Soft Grid
+      aCtx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+      aCtx.lineWidth = 1;
+      for (let x = 0; x < W; x += W / 8) {
+        aCtx.beginPath(); aCtx.moveTo(x, 0); aCtx.lineTo(x, H); aCtx.stroke();
+      }
+      for (let y = 0; y < H; y += H / 4) {
+        aCtx.beginPath(); aCtx.moveTo(0, y); aCtx.lineTo(W, y); aCtx.stroke();
+      }
+
+      if (currentBottomMode === 'art') {
+        // ShaperBox Bézier Spline Curve with Velvet Amber Glow
+        aCtx.beginPath();
+        aCtx.moveTo(20, H - 25);
+        aCtx.bezierCurveTo(40, 25, 140, 40, W * 0.45, H * 0.48);
+        aCtx.bezierCurveTo(W * 0.65, H * 0.55, W * 0.85, H * 0.75, W - 20, H - 15);
+
+        aCtx.strokeStyle = 'rgba(251, 191, 36, 0.3)';
+        aCtx.lineWidth = 6;
+        aCtx.stroke();
+
+        aCtx.strokeStyle = '#fbbf24';
+        aCtx.lineWidth = 2.2;
+        aCtx.stroke();
+
+        // Node Diamonds
+        const nodes = [[20, H - 25], [W * 0.45, H * 0.48], [W - 20, H - 15]];
+        nodes.forEach(([nx, ny]) => {
+          aCtx.fillStyle = '#fff';
+          aCtx.beginPath();
+          aCtx.arc(nx, ny, 4.5, 0, Math.PI * 2);
+          aCtx.fill();
+          aCtx.strokeStyle = '#fbbf24';
+          aCtx.lineWidth = 2;
+          aCtx.stroke();
+        });
+
+        // Vertical Playback Cursor
+        const cx = 20 + (aCursor % 1) * (W - 40);
+        aCtx.strokeStyle = 'rgba(255, 255, 255, 0.65)';
+        aCtx.lineWidth = 1.5;
+        aCtx.beginPath(); aCtx.moveTo(cx, 0); aCtx.lineTo(cx, H); aCtx.stroke();
+
+      } else {
+        // Arpeggiator 16-Step Sequencer Grid
+        const numSteps = 16;
+        const sW = (W - 40) / numSteps;
+        for (let i = 0; i < numSteps; i++) {
+          const sx = 20 + i * sW;
+          const activeStep = Math.floor(aCursor * numSteps) % numSteps === i;
+          const vH = (0.3 + (i % 3) * 0.25) * (H - 50);
+
+          // Velocity bar
+          aCtx.fillStyle = activeStep ? '#fbbf24' : (i % 4 === 0 ? '#38e1b0' : '#a78bfa');
+          aCtx.fillRect(sx + 2, H - 25 - vH, sW - 4, vH);
+
+          // Step trigger box
+          aCtx.fillStyle = activeStep ? '#fff' : 'rgba(255,255,255,0.15)';
+          aCtx.fillRect(sx + 2, H - 20, sW - 4, 12);
+        }
+      }
+
+      aCursor += 0.005;
+      requestAnimationFrame(renderArt);
+    }
+    renderArt();
+
+    // 5. Parametric EQ Curve in FX Rack
+    function drawEqCurve() {
+      const eqC = document.getElementById('eqCurveCanvas');
+      if (!eqC) return;
+      const ctx = eqC.getContext('2d');
+      ctx.clearRect(0, 0, eqC.width, eqC.height);
+
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let x = 0; x < eqC.width; x++) {
+        const u = x / eqC.width;
+        const low = Math.exp(-Math.pow(u - 0.15, 2) * 50) * 8;
+        const mid = -Math.exp(-Math.pow(u - 0.5, 2) * 45) * 10;
+        const high = Math.exp(-Math.pow(u - 0.85, 2) * 50) * 12;
+        const y = 20 - (low + mid + high);
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+  </script>
+</body>
+</html>

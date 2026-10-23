@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Prismor 1.0.4 — RAPID-Inspired UI Design Draft</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      /* Parawave RAPID Inspired Palette */
+      --chassis-bg: #11141b;
+      --panel-dark: #161922;
+      --panel-elevated: #1b1f2b;
+      --panel-recessed: #0e1017;
+      --header-silver-top: #d8dce4;
+      --header-silver-bot: #b4b8c3;
+      --border-dark: #0a0c12;
+      --border-light: rgba(255, 255, 255, 0.08);
+      --border-groove: rgba(0, 0, 0, 0.65);
+      
+      /* RAPID Signature Accents */
+      --accent-ice-blue: #4faaf7;
+      --accent-ice-glow: rgba(79, 170, 247, 0.38);
+      --accent-gold-orange: #e5a43b;
+      --accent-gold-glow: rgba(229, 164, 59, 0.38);
+      --accent-pink-red: #f43f5e;
+      --accent-green-led: #10b981;
+      
+      --text-bright: #e2e8f0;
+      --text-muted: #828ba0;
+      --text-dim: #4f576d;
+      --text-header: #2b303e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: #090b0f;
+      color: var(--text-bright);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 18px 12px;
+      overflow-x: hidden;
+    }
+
+    .meta-bar {
+      width: 1260px;
+      max-width: 98vw;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 8px 16px;
+      background: #171b26;
+      border: 1px solid #282f42;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    .badge-rapid {
+      background: #e5a43b;
+      color: #0d0f15;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 800;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+
+    /* Main Plugin Window Chassis */
+    .rapid-chassis {
+      width: 1260px;
+      max-width: 98vw;
+      background: var(--chassis-bg);
+      border: 2px solid #2e3444;
+      border-radius: 8px;
+      box-shadow: 0 28px 70px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255,255,255,0.15);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* 1. Iconic Silver-Metallic Header Bar */
+    .silver-header {
+      height: 60px;
+      background: linear-gradient(180deg, var(--header-silver-top) 0%, #c4c8d2 45%, var(--header-silver-bot) 100%);
+      border-bottom: 2px solid #0c0e14;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 16px;
+      color: var(--text-header);
+      box-shadow: inset 0 1px 0 #ffffff;
+    }
+
+    .brand-block {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .rapid-logo {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: 2.5px;
+      color: #232836;
+      line-height: 1;
+      font-family: -apple-system, BlinkMacSystemFont, "Arial Black", sans-serif;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.8);
+    }
+    .rapid-sub-specs {
+      font-size: 8.5px;
+      font-weight: 700;
+      color: #555e73;
+      letter-spacing: 0.5px;
+    }
+
+    /* Inset Browser Display in Silver Header */
+    .silver-browser {
+      flex: 1;
+      height: 34px;
+      background: linear-gradient(180deg, #9fa5b2 0%, #b2b8c5 100%);
+      border-radius: 5px;
+      border: 1px solid #7d8494;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.7);
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 10px;
+    }
+    .browser-btn {
+      background: none;
+      border: none;
+      color: #2a3040;
+      font-weight: 800;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .preset-display-text {
+      flex: 1;
+      font-size: 12px;
+      font-weight: 800;
+      color: #1a1e28;
+      letter-spacing: 0.5px;
+      text-align: center;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+    }
+    .header-readout {
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #3b4356;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding-left: 8px;
+      border-left: 1px solid rgba(0,0,0,0.15);
+    }
+
+    /* Brushed Metal Hardware Knobs in Header */
+    .header-knobs-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .macro-widget {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .macro-knob {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #e6ebf5 0%, #9ba3b5 100%);
+      border: 1px solid #6b7385;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.45), inset 0 1px 1px #fff;
+      position: relative;
+      cursor: ns-resize;
+    }
+    .macro-knob.master-gold {
+      box-shadow: 0 0 0 2px var(--accent-gold-orange), 0 3px 6px rgba(0,0,0,0.45);
+    }
+    .macro-pointer {
+      position: absolute;
+      top: 3px;
+      left: 14.5px;
+      width: 3px;
+      height: 8px;
+      background: #252b38;
+      border-radius: 1.5px;
+    }
+    .macro-label {
+      font-size: 8px;
+      font-weight: 800;
+      color: #3f475a;
+      text-transform: uppercase;
+    }
+
+    /* Master Dual Peak Meter */
+    .master-led-vmeters {
+      display: flex;
+      gap: 2px;
+      height: 30px;
+      padding: 2px;
+      background: #181c26;
+      border: 1px solid #485166;
+      border-radius: 3px;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
+    }
+    .v-led-bar {
+      width: 4px;
+      height: 100%;
+      background: linear-gradient(0deg, #10b981 60%, #f59e0b 85%, #f43f5e 100%);
+      border-radius: 1px;
+    }
+
+    /* 2. Layer Tabs Bar (Dark Hardware Strips) */
+    .layer-tabs-bar {
+      height: 32px;
+      background: #191c26;
+      border-bottom: 2px solid #0a0c10;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 4px;
+    }
+    .layer-tab {
+      height: 24px;
+      padding: 0 12px;
+      background: #141720;
+      border: 1px solid #262c3d;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+    .layer-tab:hover {
+      background: #1d2230;
+      color: var(--text-bright);
+    }
+    .layer-tab.active {
+      background: #23293a;
+      border-color: #3d465e;
+      color: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    }
+    .layer-tab-sq {
+      width: 7px;
+      height: 7px;
+      border-radius: 1px;
+      background: #3b4256;
+    }
+    .layer-tab.active .layer-tab-sq.gold {
+      background: var(--accent-gold-orange);
+      box-shadow: 0 0 6px var(--accent-gold-glow);
+    }
+    .layer-tab.active .layer-tab-sq.blue {
+      background: var(--accent-ice-blue);
+      box-shadow: 0 0 6px var(--accent-ice-glow);
+    }
+
+    /* Main Body Workspace */
+    .rapid-body {
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Standard Hardware Panel Box */
+    .rapid-panel {
+      background: var(--panel-dark);
+      border: 1px solid #232838;
+      border-radius: 5px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 3px 10px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .panel-hdr {
+      height: 24px;
+      padding: 0 8px;
+      background: linear-gradient(180deg, #222736 0%, #1a1e2a 100%);
+      border-bottom: 1px solid #0e1017;
+      border-radius: 4px 4px 0 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .panel-hdr-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .panel-indicator-sq {
+      width: 6px;
+      height: 6px;
+      border-radius: 1px;
+      background: var(--accent-ice-blue);
+      box-shadow: 0 0 5px var(--accent-ice-glow);
+    }
+    .panel-indicator-sq.gold {
+      background: var(--accent-gold-orange);
+      box-shadow: 0 0 5px var(--accent-gold-glow);
+    }
+    .panel-indicator-sq.pink {
+      background: var(--accent-pink-red);
+      box-shadow: 0 0 5px rgba(244,63,94,0.4);
+    }
+    .panel-hdr-title {
+      font-size: 9.5px;
+      font-weight: 800;
+      letter-spacing: 0.6px;
+      color: #cbd5e1;
+      text-transform: uppercase;
+    }
+
+    /* Upper Workspace Grid: Left Oscillators (440px), Center Filter/Env (450px), Right Vis/Sculpt (Flex) */
+    .upper-workspace {
+      display: grid;
+      grid-template-columns: 440px 450px 1fr;
+      gap: 10px;
+      height: 460px;
+    }
+
+    /* RAPID Knobs: Inset Track Ring + Dark Cap + Crisp Colored Arc */
+    .rapid-knob-cluster {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 6px 4px;
+    }
+
+    .r-knob {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: ns-resize;
+    }
+    .r-knob-ring {
+      width: 44px;
+      height: 44px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 50% 50%, #0d0f15 0%, #161a24 100%);
+      border-radius: 50%;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.9), 0 1px 0 rgba(255,255,255,0.08);
+      border: 1px solid #202636;
+    }
+    .r-knob-ring.small {
+      width: 32px;
+      height: 32px;
+    }
+    .r-knob-svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+    .r-knob-cap {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #2c3345 0%, #171b26 100%);
+      border: 1px solid #373f54;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.65), inset 0 1px 1px rgba(255,255,255,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .r-knob-ring.small .r-knob-cap {
+      width: 20px;
+      height: 20px;
+    }
+    .r-knob-needle {
+      width: 2px;
+      height: 8px;
+      background: #ffffff;
+      border-radius: 1px;
+      transform-origin: center 11px;
+      box-shadow: 0 0 3px rgba(255,255,255,0.9);
+    }
+    .r-knob-ring.small .r-knob-needle {
+      height: 6px;
+      transform-origin: center 8px;
+    }
+    .r-knob-label {
+      font-size: 8px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    /* RAPID Style Pitch & Param Value Badges */
+    .r-badge {
+      background: #0f121a;
+      border: 1px solid #232938;
+      border-radius: 3px;
+      padding: 1px 6px;
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .r-badge span.val {
+      color: #fff;
+      font-family: monospace;
+    }
+
+    /* Waveform Inset Display (RAPID Blue Waveform Glow) */
+    .r-wave-display {
+      background: #0c0e14;
+      border: 1px solid #202636;
+      border-radius: 4px;
+      height: 64px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.85);
+    }
+    .wave-canvas {
+      width: 100%;
+      height: 100%;
+    }
+    .wave-playhead-line {
+      position: absolute;
+      top: 0;
+      left: 35%;
+      width: 1.5px;
+      height: 100%;
+      background: var(--accent-pink-red);
+      box-shadow: 0 0 6px var(--accent-pink-red);
+    }
+
+    /* Dropdown Selectors */
+    .r-select {
+      background: linear-gradient(180deg, #1f2432 0%, #151822 100%);
+      border: 1px solid #30374a;
+      border-radius: 4px;
+      color: #e2e8f0;
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 3px 6px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* RAPID Envelope / LFO / Arp Multi-Tab Container */
+    .env-tabs-bar {
+      height: 22px;
+      background: #141722;
+      border-bottom: 1px solid #23293a;
+      display: flex;
+      align-items: center;
+      padding: 0 6px;
+      gap: 4px;
+    }
+    .env-tab-chip {
+      font-size: 8.5px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 3px;
+      color: var(--text-dim);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+    }
+    .env-tab-chip.active {
+      background: var(--accent-gold-orange);
+      color: #0c0e14;
+      font-weight: 800;
+    }
+
+    /* RAPID Envelope Interactive Canvas */
+    .r-env-canvas-box {
+      height: 90px;
+      background: #0b0d13;
+      border: 1px solid #1f2535;
+      border-radius: 4px;
+      margin: 6px;
+      position: relative;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.8);
+    }
+
+    /* Bottom Matrix Section (RAPID 8-Slot Routing Strip) */
+    .routing-matrix-strip {
+      height: 86px;
+      background: var(--panel-dark);
+      border: 1px solid #232838;
+      border-radius: 5px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 6px;
+      padding: 6px;
+    }
+    .matrix-slot-card {
+      background: #11141c;
+      border: 1px solid #1e2332;
+      border-radius: 4px;
+      padding: 4px 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .slot-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 8px;
+      font-weight: 800;
+      color: var(--text-muted);
+    }
+    .slot-hdr-left {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .matrix-select-field {
+      background: #0a0c12;
+      border: 1px solid #1c2130;
+      border-radius: 3px;
+      color: #cbd5e1;
+      font-size: 8px;
+      font-weight: 700;
+      padding: 2px 4px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Buttons */
+    .r-btn {
+      background: linear-gradient(180deg, #272d3e 0%, #191c28 100%);
+      border: 1px solid #363e54;
+      color: #cbd5e1;
+      font-size: 8.5px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .r-btn:hover {
+      background: #2e354a;
+      color: #fff;
+    }
+    .r-btn.active {
+      background: var(--accent-gold-orange);
+      color: #0c0e14;
+      border-color: #f59e0b;
+      box-shadow: 0 0 6px var(--accent-gold-glow);
+    }
+    .r-btn.blue.active {
+      background: var(--accent-ice-blue);
+      color: #0c0e14;
+      border-color: #38bdf8;
+      box-shadow: 0 0 6px var(--accent-ice-glow);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Info Header -->
+  <div class="meta-bar">
+    <div>
+      <span class="badge-rapid">PARAWAVE RAPID AESTHETIC</span>
+      <span style="margin-left: 8px;">Silver-metallic top bar, ice-blue oscillator waveforms & warm-gold filter/envelope styling for <strong>Prismor 1.0.4</strong></span>
+    </div>
+    <div style="color: var(--text-muted); font-size: 11px;">
+      Standalone Prototype &bull; Drag knobs to inspect &bull; Codebase is completely untouched
+    </div>
+  </div>
+
+  <!-- Plugin Window -->
+  <div class="rapid-chassis">
+    
+    <!-- 1. Brushed Silver-Metallic Top Bar -->
+    <header class="silver-header">
+      <div class="brand-block">
+        <span class="rapid-logo">PRISMOR</span>
+        <span class="rapid-sub-specs">1.0.4 | 64-BIT | ADDITIVE RESYNTHESIS</span>
+      </div>
+
+      <!-- Inset Preset Browser Display -->
+      <div class="silver-browser">
+        <button class="browser-btn">&#9664;</button>
+        <span class="preset-display-text">01. LEAD // Warm Legato Lead</span>
+        <button class="browser-btn">&#9654;</button>
+        <div class="header-readout"><span>CPU: <strong>2%</strong></span></div>
+        <div class="header-readout"><span>VOICES: <strong>4</strong></span></div>
+      </div>
+
+      <!-- 4 Hardware Macro Knobs + Master with Gold Rim -->
+      <div class="header-knobs-group">
+        <div class="macro-widget">
+          <div class="macro-knob"><div class="macro-pointer" style="transform: rotate(-35deg);"></div></div>
+          <span class="macro-label">Macro 1</span>
+        </div>
+        <div class="macro-widget">
+          <div class="macro-knob"><div class="macro-pointer" style="transform: rotate(0deg);"></div></div>
+          <span class="macro-label">Macro 2</span>
+        </div>
+        <div class="macro-widget">
+          <div class="macro-knob"><div class="macro-pointer" style="transform: rotate(45deg);"></div></div>
+          <span class="macro-label">Macro 3</span>
+        </div>
+        <div class="macro-widget">
+          <div class="macro-knob master-gold"><div class="macro-pointer" style="transform: rotate(15deg);"></div></div>
+          <span class="macro-label" style="color:#854d0e;">Master</span>
+        </div>
+        
+        <!-- Dual Vertical LED Output Meter -->
+        <div class="master-led-vmeters">
+          <div class="v-led-bar"></div>
+          <div class="v-led-bar" style="opacity: 0.9;"></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- 2. Dark Hardware Layer Tabs Bar -->
+    <nav class="layer-tabs-bar">
+      <button class="layer-tab active"><div class="layer-tab-sq gold"></div> 1. Layer [Part A]</button>
+      <button class="layer-tab"><div class="layer-tab-sq blue"></div> 2. Layer [Part B]</button>
+      <button class="layer-tab"><div class="layer-tab-sq"></div> 3. Dynamic FX [9]</button>
+      <button class="layer-tab"><div class="layer-tab-sq"></div> 4. Arp & Step Seq</button>
+      <button class="layer-tab"><div class="layer-tab-sq"></div> 5. Mod Matrix</button>
+      
+      <div style="margin-left: auto; display: flex; gap: 6px;">
+        <span class="r-badge">OCT <span class="val">0</span></span>
+        <span class="r-badge">SEMI <span class="val">+0</span></span>
+        <span class="r-badge">CENT <span class="val">+0</span></span>
+        <button class="r-btn blue active">LIMITER</button>
+      </div>
+    </nav>
+
+    <!-- 3. Upper Workspace: Oscillators (Left), Filter & Env (Center), 3D Wireframe / Sculptor (Right) -->
+    <div class="rapid-body">
+      
+      <section class="upper-workspace">
+        
+        <!-- Column 1: Frequency Field 1 & Field 2 (RAPID OSC A & OSC B Architecture) -->
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          
+          <!-- OSC A (Field 1) -->
+          <article class="rapid-panel" style="flex: 1;">
+            <div class="panel-hdr">
+              <div class="panel-hdr-left">
+                <div class="panel-indicator-sq"></div>
+                <h3 class="panel-hdr-title">OSC A // Field 1 [Part A]</h3>
+                <span class="r-badge">Semi <span class="val">-12</span></span>
+                <span class="r-badge">Cent <span class="val">0</span></span>
+              </div>
+              <div style="display: flex; gap: 4px;">
+                <button class="r-btn blue active">ON</button>
+              </div>
+            </div>
+
+            <!-- Inset Blue Waveform Display -->
+            <div style="padding: 6px;">
+              <div class="r-wave-display">
+                <canvas id="oscAWaveCanvas" class="wave-canvas" width="420" height="60"></canvas>
+                <div class="wave-playhead-line"></div>
+              </div>
+            </div>
+
+            <!-- RAPID Knobs Row -->
+            <div class="rapid-knob-cluster">
+              <div class="r-knob"><div class="r-knob-ring"><svg class="r-knob-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#161a24" stroke-width="3"/><circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent-ice-blue)" stroke-width="3" stroke-dasharray="106.8" stroke-dashoffset="65" stroke-linecap="round"/></svg><div class="r-knob-cap"><div class="r-knob-needle" style="transform: rotate(-35deg);"></div></div></div><span class="r-knob-label">Detune</span></div>
+              <div class="r-knob"><div class="r-knob-ring"><svg class="r-knob-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#161a24" stroke-width="3"/><circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent-ice-blue)" stroke-width="3" stroke-dasharray="106.8" stroke-dashoffset="45" stroke-linecap="round"/></svg><div class="r-knob-cap"><div class="r-knob-needle" style="transform: rotate(15deg);"></div></div></div><span class="r-knob-label">Spread</span></div>
+              <div class="r-knob"><div class="r-knob-ring"><svg class="r-knob-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#161a24" stroke-width="3"/><circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent-ice-blue)" stroke-width="3" stroke-dasharray="106.8" stroke-dashoffset="53" stroke-linecap="round"/></svg><div class="r-knob-cap"><div class="r-knob-needle" style="transform: rotate(0deg);"></div></div></div><span class="r-knob-label">Harm Scale</span></div>
+              <div class="r-knob"><div class="r-knob-ring"><svg class="r-knob-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#161a24" stroke-width="3"/><circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent-gold-orange)" stroke-width="3" stroke-dasharray="106.8" stroke-dashoffset="53" stroke-linecap="round"/></svg><div class="r-knob-cap"><div class="r-knob-needle" style="transform: rotate(0deg);"></div></div></div><span class="r-knob-label">Harm Tilt</span></div>
+              <div class="r-knob"><div class="r-knob-ring"><svg class="r-knob-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#161a24" stroke-width="3"/><circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent-ice-blue)" stroke-width="3" stroke-dasharray="106.8" stroke-dashoffset="75" stroke-linecap="round"/></svg><div class="r-knob-cap"><div class="r-knob-needle" style="transform: rotate(-60deg);"></div></div></div><span class="r-knob-label">Warp Amt</span></div>
+              <div class="r-knob"><div class="r-knob-ring"><svg class="r-knob-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#161a24" stroke-width="3"/><circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent-ice-blue)" stroke-width="3" stroke-dasharray="106.8" stroke-dashoffset="35" stroke-linecap="round"/></svg><div class="r-knob-cap"><div class="r-knob-needle" style="transform: rotate(35deg);"></div></div></div><span class="r-knob-label">Timbre</span></div>
+            </div>
+
+            <div style="padding: 0 8px 6px 8px; display: flex; justify-content: space-between;">
+              <select class="r-select" style="width: 150px;"><option>WARP: BEND +/-</option><option>WARP: MIRROR</option><option>WARP: QUANTIZE</option></select>
+              <div style="display:flex; gap: 8px;">
+                <span class="r-badge">Phase: <span class="val">0</span></span>
+                <span class="r-badge">Random: <span class="val">0</span></span>
+              </div>
+            </div>
+          </article>
+
+          <!-- OSC B (Field 2) -->
+          <article class="rapid-panel" style="flex: 1;">
+            <div class="panel-hdr">
+              <div class="panel-hdr-left">
+                <div class="panel-indicator-sq"></div>
+                <h3 class="panel-hdr-title">OSC B // Field 2 [Part B]</h3>
+                <span class="r-badge">Semi <span class="val">+7</span></span>
+                <span class="r-badge">Cent <span class="val">+8</span></span>
+              </div>
+              <div style="display: flex; gap: 4px;">
+                <button class="r-btn blue active">ON</button>
+              </div>
+            </div>
+
+            <!-- Inset Blue Waveform Display -->
+            <div style="padding: 6px;">
+              <div class="r-wave-display">
+                <canvas id="oscBWaveCanvas" class="wave-canvas" width="420" height="60"></canvas>
+                <div class="wave-playhead-line" style="left: 60%;"></div>
+              </div>
+            </div>
+
+            <!-- RAPID Knobs Row -->
+            <div class="rapid-knob-cluster">
+              <div class="r-knob"><div class="r-knob-ring"><svg class="r-knob-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#161a24" stroke-width="3"/><circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent-ice-blue)" stroke-width="3" stroke-dasharray="106.8" stroke-dashoffset="50" stroke-linecap="round"/></svg><div class="r-knob-cap"><div class="r-knob-needle" style="transform: rotate(5deg);"></div></div></div><span class="r-knob-label">Pitch B</span></div>
+              <div class="r-knob"><div class="r-knob-ring"><svg class="r-knob-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#161a24" stroke-width="3"/><circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent-ice-blue)" stroke-width="3" stroke-dasharray="106.8" stroke-dashoffset="65" stroke-linecap="round"/></svg><div class="r-knob-cap"><div class="r-knob-needle" style="transform: rotate(-35deg);"></div></div></div><span class="r-knob-label">Spread</span></div>
+              <div class="r-knob"><div class="r-knob-ring"><svg class="r-knob-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#161a24" stroke-width="3"/><circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent-ice-blue)" stroke-width="3" stroke-dasharray="106.8" stroke-dashoffset="45" stroke-linecap="round"/></svg><div class="r-knob-cap"><div class="r-knob-needle" style="transform: rotate(15deg);"></div></div></div><span class="r-knob-label">Scale B</span></div>
+              <div class="r-knob"><div class="r-knob-ring"><svg class="r-knob-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#161a24" stroke-width="3"/><circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent-gold-orange)" stroke-width="3" stroke-dasharray="106.8" stroke-dashoffset="53" stroke-linecap="round"/></svg><div class="r-knob-cap"><div class="r-knob-needle" style="transform: rotate(0deg);"></div></div></div><span class="r-knob-label">Tilt B</span></div>
+              <div class="r-knob"><div class="r-knob-ring"><svg class="r-knob-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#161a24" stroke-width="3"/><circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent-ice-blue)" stroke-width="3" stroke-dasharray="106.8" stroke-dashoffset="90" stroke-linecap="round"/></svg><div class="r-knob-cap"><div class="r-knob-needle" style="transform: rotate(-100deg);"></div></div></div><span class="r-knob-label">Warp Amt</span></div>
+              <div class="r-knob"><div class="r-knob-ring"><svg class="r-knob-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#161a24" stroke-width="3"/><circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent-ice-blue)" stroke-width="3" stroke-dasharray="106.8" stroke-dashoffset="40" stroke-linecap="round"/></svg><div class="r-knob-cap"><div class="r-knob-needle" style="transform: rotate(25deg);"></div></div></div><span class="r-knob-label">Timbre</span></div>
+            </div>
+
+            <div style="padding: 0 8px 6px 8px; display: flex; justify-content: space-between;">
+              <select class="r-select" style="width: 150px;"><option>WARP: OFF</option><option>WARP: BEND +/-</option></select>
+              <div style="display:flex; gap: 8px;">
+                <span class="r-badge">Pluck: <span class="val">0.35</span></span>
+                <span class="r-badge">Phase: <span class="val">0</span></span>
+              </div>
+            </div>
+          </article>
+
+        </div>
+
+        <!-- Column 2: Filter & Envelope/Articulator (RAPID Center Architecture) -->
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          
+          <!-- Filter Module (RAPID Warm-Gold Knobs) -->
+          <article class="rapid-panel">
+            <div class="panel-hdr">
+              <div class="panel-hdr-left">
+                <div class="panel-indicator-sq gold"></div>
+                <h3 class="panel-hdr-title">FILTER 1 & 2 // TALKBOX & VOCODER</h3>
+              </div>
+              <select class="r-select"><option>Type: LP-24</option><option>VOX FORMANT</option><option>TALKBOX</option></select>
+            </div>
+
+            <div class="rapid-knob-cluster" style="padding: 10px 4px 6px 4px;">
+              <div class="r-knob"><div class="r-knob-ring"><svg class="r-knob-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#161a24" stroke-width="3"/><circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent-gold-orange)" stroke-width="3.5" stroke-dasharray="106.8" stroke-dashoffset="35" stroke-linecap="round"/></svg><div class="r-knob-cap"><div class="r-knob-needle" style="transform: rotate(35deg);"></div></div></div><span class="r-knob-label">Cutoff</span></div>
+              <div class="r-knob"><div class="r-knob-ring"><svg class="r-knob-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#161a24" stroke-width="3"/><circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent-gold-orange)" stroke-width="3.5" stroke-dasharray="106.8" stroke-dashoffset="50" stroke-linecap="round"/></svg><div class="r-knob-cap"><div class="r-knob-needle" style="transform: rotate(5deg);"></div></div></div><span class="r-knob-label">Resonance</span></div>
+              <div class="r-knob"><div class="r-knob-ring"><svg class="r-knob-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#161a24" stroke-width="3"/><circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent-gold-orange)" stroke-width="3.5" stroke-dasharray="106.8" stroke-dashoffset="65" stroke-linecap="round"/></svg><div class="r-knob-cap"><div class="r-knob-needle" style="transform: rotate(-35deg);"></div></div></div><span class="r-knob-label">Keyfollow</span></div>
+              <div class="r-knob"><div class="r-knob-ring small"><svg class="r-knob-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#161a24" stroke-width="3"/><circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent-gold-orange)" stroke-width="3" stroke-dasharray="106.8" stroke-dashoffset="45" stroke-linecap="round"/></svg><div class="r-knob-cap"><div class="r-knob-needle" style="transform: rotate(15deg);"></div></div></div><span class="r-knob-label">Width</span></div>
+              <div class="r-knob"><div class="r-knob-ring small"><svg class="r-knob-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#161a24" stroke-width="3"/><circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent-ice-blue)" stroke-width="3" stroke-dasharray="106.8" stroke-dashoffset="53" stroke-linecap="round"/></svg><div class="r-knob-cap"><div class="r-knob-needle" style="transform: rotate(0deg);"></div></div></div><span class="r-knob-label">Ser/Par</span></div>
+              <div class="r-knob"><div class="r-knob-ring small"><svg class="r-knob-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#161a24" stroke-width="3"/><circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent-gold-orange)" stroke-width="3" stroke-dasharray="106.8" stroke-dashoffset="70" stroke-linecap="round"/></svg><div class="r-knob-cap"><div class="r-knob-needle" style="transform: rotate(-50deg);"></div></div></div><span class="r-knob-label">Drive</span></div>
+            </div>
+          </article>
+
+          <!-- RAPID Envelope / Shaper Editor (Warm Gold Graphic Curve) -->
+          <article class="rapid-panel" style="flex: 1;">
+            <!-- Env Tabs Header -->
+            <div class="env-tabs-bar">
+              <span style="font-size: 8px; font-weight: 800; color: #505a74; margin-right: 4px;">ENVELOPE</span>
+              <button class="env-tab-chip active">A</button>
+              <button class="env-tab-chip">B</button>
+              <button class="env-tab-chip">C</button>
+              <button class="env-tab-chip">D</button>
+              <span style="border-left: 1px solid #23293a; height: 12px; margin: 0 4px;"></span>
+              <span style="font-size: 8px; font-weight: 800; color: #505a74; margin-right: 4px;">LFO</span>
+              <button class="env-tab-chip">A</button>
+              <button class="env-tab-chip">B</button>
+              <span style="border-left: 1px solid #23293a; height: 12px; margin: 0 4px;"></span>
+              <span style="font-size: 8px; font-weight: 800; color: #505a74; margin-right: 4px;">ARP</span>
+              <button class="env-tab-chip">1</button>
+            </div>
+
+            <!-- Inset Graphic Curve -->
+            <div class="r-env-canvas-box">
+              <canvas id="rapidEnvCanvas" width="436" height="90"></canvas>
+            </div>
+
+            <!-- ADSR Knobs Row (Gold Ring) -->
+            <div class="rapid-knob-cluster" style="padding-top: 2px;">
+              <div class="r-knob"><div class="r-knob-ring"><svg class="r-knob-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#161a24" stroke-width="3"/><circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent-gold-orange)" stroke-width="3.5" stroke-dasharray="106.8" stroke-dashoffset="65" stroke-linecap="round"/></svg><div class="r-knob-cap"><div class="r-knob-needle" style="transform: rotate(-35deg);"></div></div></div><span class="r-knob-label">Attack</span></div>
+              <div class="r-knob"><div class="r-knob-ring"><svg class="r-knob-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#161a24" stroke-width="3"/><circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent-gold-orange)" stroke-width="3.5" stroke-dasharray="106.8" stroke-dashoffset="45" stroke-linecap="round"/></svg><div class="r-knob-cap"><div class="r-knob-needle" style="transform: rotate(15deg);"></div></div></div><span class="r-knob-label">Hold</span></div>
+              <div class="r-knob"><div class="r-knob-ring"><svg class="r-knob-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#161a24" stroke-width="3"/><circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent-gold-orange)" stroke-width="3.5" stroke-dasharray="106.8" stroke-dashoffset="35" stroke-linecap="round"/></svg><div class="r-knob-cap"><div class="r-knob-needle" style="transform: rotate(35deg);"></div></div></div><span class="r-knob-label">Decay</span></div>
+              <div class="r-knob"><div class="r-knob-ring"><svg class="r-knob-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#161a24" stroke-width="3"/><circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent-gold-orange)" stroke-width="3.5" stroke-dasharray="106.8" stroke-dashoffset="30" stroke-linecap="round"/></svg><div class="r-knob-cap"><div class="r-knob-needle" style="transform: rotate(45deg);"></div></div></div><span class="r-knob-label">Sustain</span></div>
+              <div class="r-knob"><div class="r-knob-ring"><svg class="r-knob-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="#161a24" stroke-width="3"/><circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent-gold-orange)" stroke-width="3.5" stroke-dasharray="106.8" stroke-dashoffset="70" stroke-linecap="round"/></svg><div class="r-knob-cap"><div class="r-knob-needle" style="transform: rotate(-50deg);"></div></div></div><span class="r-knob-label">Release</span></div>
+            </div>
+          </article>
+
+        </div>
+
+        <!-- Column 3: 3D Waterfall / Harmonic Visualizer & Sculptor (RAPID Display & Multi-FX Rack) -->
+        <article class="rapid-panel" style="display: flex; flex-direction: column;">
+          <div class="panel-hdr">
+            <div class="panel-hdr-left">
+              <div class="panel-indicator-sq gold"></div>
+              <h3 class="panel-hdr-title">3D HARMONIC WATERFALL & SCULPTOR</h3>
+            </div>
+            <div style="display: flex; gap: 4px;">
+              <button class="r-btn active">3D</button>
+              <button class="r-btn">2D</button>
+            </div>
+          </div>
+
+          <!-- 3D Waterfall Canvas -->
+          <div style="flex: 1; position: relative; background: #0a0c12; border-bottom: 1px solid #1f2535;">
+            <canvas id="rapidWaterfallCanvas" width="340" height="230" style="width: 100%; height: 100%;"></canvas>
+          </div>
+
+          <!-- Harmonic Partials Sculptor Inset -->
+          <div style="height: 160px; background: #0c0e15; display: flex; flex-direction: column;">
+            <div style="height: 22px; background: #131722; border-top: 1px solid #1f2535; border-bottom: 1px solid #1f2535; display: flex; align-items: center; padding: 0 8px; gap: 6px;">
+              <span style="font-size: 8px; font-weight: 800; color: #505a74;">PARTIALS:</span>
+              <button class="r-btn blue active" style="font-size: 7.5px;">SAW</button>
+              <button class="r-btn" style="font-size: 7.5px;">SQR</button>
+              <button class="r-btn" style="font-size: 7.5px;">TRI</button>
+              <button class="r-btn" style="font-size: 7.5px;">ODD+</button>
+              <button class="r-btn" style="font-size: 7.5px;">EVEN+</button>
+            </div>
+            <canvas id="rapidPartialCanvas" width="340" height="135" style="width: 100%; flex: 1; cursor: crosshair;"></canvas>
+          </div>
+        </article>
+
+      </section>
+
+      <!-- 4. Bottom Modulation Matrix Strip (Signature RAPID 8-Slot Routing) -->
+      <section class="routing-matrix-strip">
+        <!-- Slot R1 -->
+        <div class="matrix-slot-card">
+          <div class="slot-hdr"><div class="slot-hdr-left"><div class="panel-indicator-sq pink"></div><span>R1</span></div><span class="r-badge"><span class="val">+45</span></span></div>
+          <div class="matrix-select-field"><span>Src</span><span style="color:var(--accent-ice-blue);">LFO A</span></div>
+          <div class="matrix-select-field"><span>Trg</span><span style="color:var(--accent-gold-orange);">Cutoff</span></div>
+        </div>
+
+        <!-- Slot R2 -->
+        <div class="matrix-slot-card">
+          <div class="slot-hdr"><div class="slot-hdr-left"><div class="panel-indicator-sq pink"></div><span>R2</span></div><span class="r-badge"><span class="val">+28</span></span></div>
+          <div class="matrix-select-field"><span>Src</span><span style="color:var(--accent-ice-blue);">Velocity</span></div>
+          <div class="matrix-select-field"><span>Trg</span><span style="color:var(--accent-gold-orange);">Harm Tilt</span></div>
+        </div>
+
+        <!-- Slot R3 -->
+        <div class="matrix-slot-card">
+          <div class="slot-hdr"><div class="slot-hdr-left"><div class="panel-indicator-sq pink"></div><span>R3</span></div><span class="r-badge"><span class="val">-15</span></span></div>
+          <div class="matrix-select-field"><span>Src</span><span style="color:var(--accent-ice-blue);">Keytrack</span></div>
+          <div class="matrix-select-field"><span>Trg</span><span style="color:var(--accent-gold-orange);">Resonance</span></div>
+        </div>
+
+        <!-- Slot R4 -->
+        <div class="matrix-slot-card">
+          <div class="slot-hdr"><div class="slot-hdr-left"><div class="panel-indicator-sq pink"></div><span>R4</span></div><span class="r-badge"><span class="val">+60</span></span></div>
+          <div class="matrix-select-field"><span>Src</span><span style="color:var(--accent-ice-blue);">Env B</span></div>
+          <div class="matrix-select-field"><span>Trg</span><span style="color:var(--accent-gold-orange);">Pitch B</span></div>
+        </div>
+
+        <!-- Slot R5 -->
+        <div class="matrix-slot-card">
+          <div class="slot-hdr"><div class="slot-hdr-left"><div class="panel-indicator-sq pink"></div><span>R5</span></div><span class="r-badge"><span class="val">+80</span></span></div>
+          <div class="matrix-select-field"><span>Src</span><span style="color:var(--accent-ice-blue);">ModWheel</span></div>
+          <div class="matrix-select-field"><span>Trg</span><span style="color:var(--accent-gold-orange);">Warp A</span></div>
+        </div>
+
+        <!-- Slot R6 -->
+        <div class="matrix-slot-card">
+          <div class="slot-hdr"><div class="slot-hdr-left"><div class="panel-indicator-sq pink"></div><span>R6</span></div><span class="r-badge"><span class="val">0</span></span></div>
+          <div class="matrix-select-field"><span>Src</span><span>----</span></div>
+          <div class="matrix-select-field"><span>Trg</span><span>----</span></div>
+        </div>
+
+        <!-- Slot R7 -->
+        <div class="matrix-slot-card">
+          <div class="slot-hdr"><div class="slot-hdr-left"><div class="panel-indicator-sq pink"></div><span>R7</span></div><span class="r-badge"><span class="val">0</span></span></div>
+          <div class="matrix-select-field"><span>Src</span><span>----</span></div>
+          <div class="matrix-select-field"><span>Trg</span><span>----</span></div>
+        </div>
+
+        <!-- Slot R8 -->
+        <div class="matrix-slot-card">
+          <div class="slot-hdr"><div class="slot-hdr-left"><div class="panel-indicator-sq pink"></div><span>R8</span></div><span class="r-badge"><span class="val">0</span></span></div>
+          <div class="matrix-select-field"><span>Src</span><span>----</span></div>
+          <div class="matrix-select-field"><span>Trg</span><span>----</span></div>
+        </div>
+      </section>
+
+    </div>
+
+  </div>
+
+  <!-- Interactive Demo Logic -->
+  <script>
+    // 1. Inset Waveform Oscillators (Ice Blue Glowing Audio Stream)
+    function drawRapidWave(canvasId, freq, phaseOffset) {
+      const cvs = document.getElementById(canvasId);
+      if (!cvs) return;
+      const ctx = cvs.getContext('2d');
+      const W = cvs.width;
+      const H = cvs.height;
+      let phase = phaseOffset;
+
+      function render() {
+        ctx.clearRect(0, 0, W, H);
+        
+        // Zero crossing center line
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
+
+        ctx.strokeStyle = '#4faaf7';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        for (let x = 0; x < W; x++) {
+          const u = x / W;
+          const y = H/2 + Math.sin(u * freq + phase) * (H * 0.38) * Math.cos(u * 8 - phase * 0.5);
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        phase += 0.04;
+        requestAnimationFrame(render);
+      }
+      render();
+    }
+    drawRapidWave('oscAWaveCanvas', 24, 0);
+    drawRapidWave('oscBWaveCanvas', 38, 2.5);
+
+    // 2. RAPID Style Gold Envelope Curve
+    function drawRapidEnv() {
+      const cvs = document.getElementById('rapidEnvCanvas');
+      if (!cvs) return;
+      const ctx = cvs.getContext('2d');
+      const W = cvs.width;
+      const H = cvs.height;
+
+      ctx.clearRect(0, 0, W, H);
+      
+      // Fine grid lines
+      ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < W; x += W / 8) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+      }
+
+      // Warm Gold ADSR Curve
+      ctx.beginPath();
+      ctx.moveTo(10, H - 10);
+      ctx.lineTo(W * 0.35, 14); // Attack
+      ctx.lineTo(W * 0.60, 14); // Hold
+      ctx.lineTo(W * 0.82, H * 0.45); // Decay / Sustain
+      ctx.lineTo(W - 10, H - 10); // Release
+
+      // Soft glow stroke
+      ctx.strokeStyle = 'rgba(229, 164, 59, 0.35)';
+      ctx.lineWidth = 5;
+      ctx.stroke();
+
+      // Sharp core stroke
+      ctx.strokeStyle = '#e5a43b';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Node Handles
+      const pts = [[10, H - 10], [W * 0.35, 14], [W * 0.60, 14], [W * 0.82, H * 0.45], [W - 10, H - 10]];
+      pts.forEach(([px, py]) => {
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#e5a43b';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      });
+    }
+    drawRapidEnv();
+
+    // 3. 3D Waterfall Canvas (RAPID Dark Wireframe)
+    const wCvs = document.getElementById('rapidWaterfallCanvas');
+    if (wCvs) {
+      const ctx = wCvs.getContext('2d');
+      let step = 0;
+      function renderWaterfall() {
+        ctx.clearRect(0, 0, wCvs.width, wCvs.height);
+        const W = wCvs.width;
+        const slices = 16;
+        for (let s = slices - 1; s >= 0; s--) {
+          const depth = s / slices;
+          const yBase = 45 + s * 11;
+          const xOffset = 20 + s * 6;
+          const sliceW = W - 40 - s * 12;
+
+          ctx.beginPath();
+          ctx.strokeStyle = s === 0 ? '#4faaf7' : `rgba(79, 170, 247, ${0.12 + (1 - depth) * 0.45})`;
+          ctx.lineWidth = s === 0 ? 1.8 : 1;
+
+          for (let i = 0; i <= 32; i++) {
+            const u = i / 32;
+            const px = xOffset + u * sliceW;
+            const peak = Math.exp(-Math.pow((u - 0.32), 2) * 24) * (0.8 + Math.sin(step * 0.05 - s * 0.4) * 0.2);
+            const py = yBase - peak * (1 - depth * 0.35) * 65;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.stroke();
+        }
+        step++;
+        requestAnimationFrame(renderWaterfall);
+      }
+      renderWaterfall();
+    }
+
+    // 4. Harmonic Partial Sculptor
+    const pCvs = document.getElementById('rapidPartialCanvas');
+    if (pCvs) {
+      const ctx = pCvs.getContext('2d');
+      const N = 36;
+      const bW = pCvs.width / N;
+      for (let i = 0; i < N; i++) {
+        const u = i / N;
+        const bH = Math.pow(1 - u * 0.85, 1.3) * (pCvs.height - 15);
+        const x = i * bW;
+        const y = pCvs.height - bH;
+
+        ctx.fillStyle = i % 2 === 0 ? '#4faaf7' : '#38bdf8';
+        ctx.fillRect(x + 1, y, bW - 2, bH);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(x + 1, y, bW - 2, 1.5);
+      }
+    }
+  </script>
+</body>
+</html>
