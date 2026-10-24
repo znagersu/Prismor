@@ -12567,6 +12567,11 @@ public:
         setParam("flangerManual",   0.35f);
         setParam("flangerMix",      p.flangerMix);
 
+        setParam("bodeEnable",      0.0f);
+        setParam("bodeShift",       0.0f);
+        setParam("bodeFeedback",    0.0f);
+        setParam("bodeMix",         0.50f);
+
         setParam("timeModEnable",   p.timeModEnable ? 1.0f : 0.0f);
         setParam("timeModMode",     static_cast<float>(p.timeModMode));
         setParam("timeModRate",     static_cast<float>(p.timeModRate));

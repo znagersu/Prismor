@@ -245,6 +245,11 @@ public:
         std::atomic<float>* flangerManual = nullptr;
         std::atomic<float>* flangerMix = nullptr;
 
+        std::atomic<float>* bodeEnable = nullptr;
+        std::atomic<float>* bodeShift = nullptr;
+        std::atomic<float>* bodeFeedback = nullptr;
+        std::atomic<float>* bodeMix = nullptr;
+
         std::atomic<float>* timeModEnable = nullptr;
         std::atomic<float>* timeModMode = nullptr;
         std::atomic<float>* timeModRate = nullptr;

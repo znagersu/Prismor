@@ -965,6 +965,12 @@ PrismorAudioProcessorEditor::PrismorAudioProcessorEditor(PrismorAudioProcessor& 
     flangerSpreadKnob   = &addKnob("flangerSpread",   "SPREAD",  "amber",   false, 1, 11);
     flangerMixKnob      = &addKnob("flangerMix",      "MIX",     "cyan",    false, 1, 11);
 
+    // FX 12: Bode Frequency Shifter (Linear Hilbert SSB Frequency Shifter)
+    bodeEnableBtn    = &addBypassToggle("bodeEnable", "ON", "magenta", 1, 12);
+    bodeShiftKnob    = &addKnob("bodeShift",    "SHIFT Hz", "magenta", true,  1, 12);
+    bodeFeedbackKnob = &addKnob("bodeFeedback", "FEEDBCK",  "amber",   true,  1, 12);
+    bodeMixKnob      = &addKnob("bodeMix",      "MIX",      "cyan",    false, 1, 12);
+
     // -------------------------------------------------------------------------
     // TIME MODULATION TAB CONTROLS (tabGroup = 4)
     // -------------------------------------------------------------------------
@@ -1538,7 +1544,7 @@ void PrismorAudioProcessorEditor::setActiveTab(int tabIdx)
 
 void PrismorAudioProcessorEditor::showAddFxMenu()
 {
-    static const char* fxMenuNames[12] = {
+    static const char* fxMenuNames[13] = {
         "Spectral Blur & Pluck",
         "Harmonic Tremolo",
         "Distortion / Wavefolder",
@@ -1550,19 +1556,21 @@ void PrismorAudioProcessorEditor::showAddFxMenu()
         "Multiband OTT / VCA Compressor",
         "Zenology Modulation Pack (Ring Mod / Shifter)",
         "Zenology Lo-Fi Pack (Bitcrusher / SP-1200)",
-        "Zenology Flanger Pack (Jet / Thru-Zero)"
+        "Zenology Flanger Pack (Jet / Thru-Zero)",
+        "Bode Frequency Shifter (Hilbert SSB)"
     };
-    static const char* fxEnableParamIds[12] = {
+    static const char* fxEnableParamIds[13] = {
         "blurEnable", "tremEnable", "distEnable", "phaserEnable",
         "chorusEnable", "eqEnable", "delayEnable", "reverbEnable",
-        "compEnable", "ringEnable", "crushEnable", "flangerEnable"
+        "compEnable", "ringEnable", "crushEnable", "flangerEnable",
+        "bodeEnable"
     };
 
     const auto activeChain = audioProcessor.getSynthEngine().getActiveFxChain();
     juce::PopupMenu menu;
-    menu.addSectionHeader("ADD EFFECT TO DYNAMIC 12-SLOT FX CHAIN");
+    menu.addSectionHeader("ADD EFFECT TO DYNAMIC FX CHAIN");
 
-    for (int modId = 0; modId < 12; ++modId)
+    for (int modId = 0; modId < 13; ++modId)
     {
         bool alreadyActive = false;
         for (int m : activeChain)
@@ -1575,7 +1583,7 @@ void PrismorAudioProcessorEditor::showAddFxMenu()
     }
 
     menu.addSeparator();
-    menu.addItem(100, "Restore All 12 FX Modules (Default Chain)");
+    menu.addItem(100, "Restore Default FX Chain");
 
     menu.showMenuAsync(juce::PopupMenu::Options(), [this](int result)
     {
@@ -1586,7 +1594,7 @@ void PrismorAudioProcessorEditor::showAddFxMenu()
             resized();
             repaint();
         }
-        else if (result >= 1 && result <= 12)
+        else if (result >= 1 && result <= 13)
         {
             const int modId = result - 1;
             if (audioProcessor.getSynthEngine().addFxModule(modId))
@@ -2329,18 +2337,20 @@ void PrismorAudioProcessorEditor::paint(juce::Graphics& g)
         g.drawText("DYNAMIC FX CHAIN (DRAG TO REORDER):", fxChainStripRect.getX() + 10, fxChainStripRect.getY(), 196, fxChainStripRect.getHeight(),
                    juce::Justification::centredLeft, false);
 
-        static const char* fxShortNames[12] = {
-            "BLUR", "TREM", "DIST", "PHASE", "CHORUS", "EQ", "DELAY", "REVERB", "OTT", "RING", "LO-FI", "FLANGE"
+        static const char* fxShortNames[13] = {
+            "BLUR", "TREM", "DIST", "PHASE", "CHORUS", "EQ", "DELAY", "REVERB", "OTT", "RING", "LO-FI", "FLANGE", "BODE"
         };
-        const bool fxEnabledStates[12] = {
+        const bool fxEnabledStates[13] = {
             synthParams.blurEnable, synthParams.tremEnable, synthParams.distEnable, synthParams.phaserEnable,
             synthParams.chorusEnable, synthParams.eqEnable, synthParams.delayEnable, synthParams.reverbEnable,
-            synthParams.compEnable, synthParams.ringEnable, synthParams.crushEnable, synthParams.flangerEnable
+            synthParams.compEnable, synthParams.ringEnable, synthParams.crushEnable, synthParams.flangerEnable,
+            synthParams.bodeEnable
         };
-        const juce::Colour fxColors[12] = {
+        const juce::Colour fxColors[13] = {
             Palette::energeticAmber, Palette::electricCyan, Palette::deepMagenta, Palette::deepMagenta,
             Palette::electricCyan, Palette::energeticAmber, Palette::energeticAmber, Palette::neonEmerald,
-            Palette::electricCyan, Palette::deepMagenta, Palette::energeticAmber, Palette::electricCyan
+            Palette::electricCyan, Palette::deepMagenta, Palette::energeticAmber, Palette::electricCyan,
+            Palette::deepMagenta
         };
 
         const auto activeChain = audioProcessor.getSynthEngine().getActiveFxChain();
@@ -2348,7 +2358,7 @@ void PrismorAudioProcessorEditor::paint(juce::Graphics& g)
 
         const float chainStartX = static_cast<float>(fxChainStripRect.getX() + 206);
         const float chainW = static_cast<float>(fxChainStripRect.getWidth() - 480);
-        const float pillW = chainW / 12.0f;
+        const float pillW = chainW / static_cast<float>(std::max(12, numActive));
 
         for (int slot = 0; slot < numActive; ++slot)
         {
@@ -2395,8 +2405,8 @@ void PrismorAudioProcessorEditor::paint(juce::Graphics& g)
         drawChainBtn(moveRBtn,    "R >",      Palette::electricCyan);
         drawChainBtn(rstOrderBtn, "RESET",    Palette::energeticAmber);
 
-        // 2. Draw the 12 FX Grid Slots (Active FX Modules + Empty '+ ADD FX MODULE' Slots)
-        static const char* fxCardTitles[12] = {
+        // 2. Draw the FX Grid Slots (Active FX Modules + Empty '+ ADD FX MODULE' Slots)
+        static const char* fxCardTitles[13] = {
             "SPECTRAL BLUR & PLUCK",
             "HARMONIC TREMOLO",
             "DISTORTION / FOLD",
@@ -2408,10 +2418,11 @@ void PrismorAudioProcessorEditor::paint(juce::Graphics& g)
             "MULTIBAND OTT COMP",
             "ZENOLOGY MODULATION PACK",
             "ZENOLOGY LO-FI BITCRUSHER",
-            "ZENOLOGY FLANGER PACK"
+            "ZENOLOGY FLANGER PACK",
+            "BODE FREQUENCY SHIFTER"
         };
 
-        for (int slot = 0; slot < 12; ++slot)
+        for (int slot = 0; slot < std::max(12, numActive); ++slot)
         {
             const auto cardRect = fxSlotBounds[static_cast<size_t>(slot)];
             if (slot < numActive)
@@ -2753,8 +2764,8 @@ void PrismorAudioProcessorEditor::mouseDown(const juce::MouseEvent& e)
         }
     }
 
-    // 2. Check clicks on the 12 FX Grid Cards (Reorder '<' '>', Remove 'X', Drag Header, or Click Empty Slot to Add)
-    for (int slot = 0; slot < 12; ++slot)
+    // 2. Check clicks on the FX Grid Cards (Reorder '<' '>', Remove 'X', Drag Header, or Click Empty Slot to Add)
+    for (int slot = 0; slot < std::max(12, numActive); ++slot)
     {
         const auto r = fxSlotBounds[static_cast<size_t>(slot)].toFloat();
         if (r.contains(pos))
@@ -3112,7 +3123,7 @@ void PrismorAudioProcessorEditor::resized()
     const int fxColW  = (getWidth() - margin * 2 - gap * 3) / 4;
     const int fxRowH  = (fxGridH - gap * 2) / 3;
 
-    for (int slot = 0; slot < 12; ++slot)
+    for (int slot = 0; slot < 16; ++slot)
     {
         const int col = slot % 4;
         const int row = slot / 4;
@@ -3270,7 +3281,6 @@ void PrismorAudioProcessorEditor::resized()
                 break;
             }
             case 11: // Zenology Flanger Pack (Jet / Through-Zero / Barberpole / Step Flanger)
-            default:
             {
                 flangerEnableBtn->setBounds(card.getRight() - 48, card.getY() + 3, 42, 16);
                 auto topRow = area.removeFromTop(18);
@@ -3282,6 +3292,16 @@ void PrismorAudioProcessorEditor::resized()
                 layoutControlWithLabel(*flangerFeedbackKnob, area.removeFromLeft(kw).reduced(1, 0), 11);
                 layoutControlWithLabel(*flangerSpreadKnob,   area.removeFromLeft(kw).reduced(1, 0), 11);
                 layoutControlWithLabel(*flangerMixKnob,      area.reduced(1, 0), 11);
+                break;
+            }
+            case 12: // Bode Frequency Shifter (Linear Hilbert SSB Frequency Shifter)
+            default:
+            {
+                bodeEnableBtn->setBounds(card.getRight() - 48, card.getY() + 3, 42, 16);
+                const int kw = area.getWidth() / 3;
+                layoutControlWithLabel(*bodeShiftKnob,    area.removeFromLeft(kw).reduced(3, 2), 11);
+                layoutControlWithLabel(*bodeFeedbackKnob, area.removeFromLeft(kw).reduced(3, 2), 11);
+                layoutControlWithLabel(*bodeMixKnob,      area.reduced(3, 2), 11);
                 break;
             }
         }

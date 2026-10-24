@@ -26,7 +26,8 @@ enum class FxModuleId : int
     RingMod = 9,     // Zenology Modulation Pack: Ring Modulator / Freq Shifter / Auto-Pan
     Bitcrusher = 10, // Zenology Lo-Fi Pack: Bitcrusher & Sample-Rate Decimator
     Flanger = 11,    // Zenology Flanger Pack: Through-Zero / Jet Stereo Flanger
-    Count = 12
+    Bode = 12,       // Bode Frequency Shifter: Linear Hilbert SSB Frequency Shifter
+    Count = 13
 };
 
 struct ArpStep
@@ -248,6 +249,12 @@ struct SynthParameters
     float flangerManual   = 0.35f;  // 0..1 Center Delay Offset
     float flangerMix      = 0.50f;  // 0..1
 
+    // FX 12: Bode Frequency Shifter (Linear Hilbert SSB Frequency Shifter)
+    bool  bodeEnable      = false;
+    float bodeShift       = 0.0f;   // -5000 Hz .. +5000 Hz (0 at center)
+    float bodeFeedback    = 0.0f;   // -0.88 .. +0.88 Bipolar Feedback
+    float bodeMix         = 0.50f;  // 0..1 Dry/Wet
+
     // -------------------------------------------------------------------------
     // 9. Time Modulation Engine (Gross Beat / ShaperBox 3 Buffer Time-Shaping)
     // -------------------------------------------------------------------------
@@ -396,6 +403,10 @@ public:
         flangerFbL = flangerFbR = 0.0f;
         flangerBufL.fill(0.0f);
         flangerBufR.fill(0.0f);
+        bodeCarrierPhase = 0.0f;
+        bodeFbL = bodeFbR = 0.0f;
+        bodeHilbertL.reset();
+        bodeHilbertR.reset();
         timeModWritePos = 0;
         timeModBarPhase = 0.0f;
         timeModTapePhase = 0.0f;
@@ -439,7 +450,7 @@ public:
     void resetFxChainOrder() noexcept
     {
         juce::ScopedLock sl(fxOrderLock);
-        // Default 12-slot chain including Zenology Ring Mod, Bitcrusher & Flanger Packs
+        // Default 12-slot chain including Bode Frequency Shifter & Zenology Packs
         activeFxChain = {
             static_cast<int>(FxModuleId::Blur),
             static_cast<int>(FxModuleId::Tremolo),
@@ -447,10 +458,10 @@ public:
             static_cast<int>(FxModuleId::RingMod),
             static_cast<int>(FxModuleId::Bitcrusher),
             static_cast<int>(FxModuleId::Flanger),
+            static_cast<int>(FxModuleId::Bode),
             static_cast<int>(FxModuleId::Compressor),
             static_cast<int>(FxModuleId::Phaser),
             static_cast<int>(FxModuleId::Chorus),
-            static_cast<int>(FxModuleId::ParametricEQ),
             static_cast<int>(FxModuleId::Delay),
             static_cast<int>(FxModuleId::Reverb)
         };
@@ -3188,6 +3199,64 @@ private:
                 break;
             }
 
+            case FxModuleId::Bode:
+            {
+                if (!params.bodeEnable || params.bodeMix <= 0.005f)
+                    break;
+
+                const float shift = juce::jlimit(-5000.0f, 5000.0f, params.bodeShift);
+                const float mix   = juce::jlimit(0.0f, 1.0f, params.bodeMix);
+                const float fb    = juce::jlimit(-0.88f, 0.88f, params.bodeFeedback);
+                const float phaseInc = (shift * invSampleRate) * juce::MathConstants<float>::twoPi;
+
+                for (int i = 0; i < numSamples; ++i)
+                {
+                    float inL = outL[i];
+                    float inR = (numChannels > 1) ? outR[i] : inL;
+                    if (std::isnan(inL) || std::isinf(inL)) inL = 0.0f;
+                    if (std::isnan(inR) || std::isinf(inR)) inR = 0.0f;
+
+                    // Recirculate feedback through soft saturation
+                    const float fbInL = inL + std::tanh(bodeFbL * 0.85f) * fb;
+                    const float fbInR = inR + std::tanh(bodeFbR * 0.85f) * fb;
+
+                    bodeCarrierPhase += phaseInc;
+                    if (bodeCarrierPhase > juce::MathConstants<float>::pi)
+                        bodeCarrierPhase -= juce::MathConstants<float>::twoPi;
+                    else if (bodeCarrierPhase < -juce::MathConstants<float>::pi)
+                        bodeCarrierPhase += juce::MathConstants<float>::twoPi;
+
+                    const float cCos = std::cos(bodeCarrierPhase);
+                    const float cSin = std::sin(bodeCarrierPhase);
+
+                    float iL = 0.0f, qL = 0.0f;
+                    float iR = 0.0f, qR = 0.0f;
+                    bodeHilbertL.process(fbInL, iL, qL);
+                    bodeHilbertR.process(fbInR, iR, qR);
+
+                    // True Bode Single-Sideband (SSB) Frequency Shifter:
+                    // y = I * cos(omega*t) + Q * sin(omega*t)
+                    // For shift > 0: linear upshift
+                    // For shift < 0: linear downshift
+                    float wetL = iL * cCos + qL * cSin;
+                    float wetR = iR * cCos + qR * cSin;
+
+                    if (std::isnan(wetL) || std::isinf(wetL)) wetL = 0.0f;
+                    if (std::isnan(wetR) || std::isinf(wetR)) wetR = 0.0f;
+
+                    wetL = std::tanh(wetL);
+                    wetR = std::tanh(wetR);
+
+                    bodeFbL = wetL;
+                    bodeFbR = wetR;
+
+                    outL[i] = inL * (1.0f - mix) + wetL * mix;
+                    if (numChannels > 1)
+                        outR[i] = inR * (1.0f - mix) + wetR * mix;
+                }
+                break;
+            }
+
             case FxModuleId::Count:
             default:
                 break;
@@ -3443,6 +3512,79 @@ private:
     float  flangerFbL = 0.0f, flangerFbR = 0.0f;
     std::array<float, FLANGER_BUFFER_SIZE> flangerBufL {};
     std::array<float, FLANGER_BUFFER_SIZE> flangerBufR {};
+
+    // Bode Frequency Shifter State (Hilbert All-Pass Network)
+    struct BodeAllpassSection
+    {
+        float c = 0.0f;
+        float x1 = 0.0f, x2 = 0.0f;
+        float y1 = 0.0f, y2 = 0.0f;
+
+        void reset() noexcept { x1 = x2 = y1 = y2 = 0.0f; }
+
+        inline float process(float x) noexcept
+        {
+            const float y = c * (x + y2) - x2;
+            x2 = x1;
+            x1 = x;
+            y2 = y1;
+            y1 = y;
+            return y;
+        }
+    };
+
+    struct BodeHilbertPair
+    {
+        BodeAllpassSection path1[4];
+        BodeAllpassSection path2[4];
+        float delay1 = 0.0f;
+
+        BodeHilbertPair() noexcept { reset(); }
+
+        void reset() noexcept
+        {
+            const float c1[4] = {
+                0.4794411160829620f,
+                0.8762435898950486f,
+                0.9766029691687166f,
+                0.9974994041220338f
+            };
+            const float c2[4] = {
+                0.1617774170636317f,
+                0.7330669013033557f,
+                0.9453630196680628f,
+                0.9906005141670404f
+            };
+
+            for (int i = 0; i < 4; ++i)
+            {
+                path1[i].c = c1[i];
+                path1[i].reset();
+                path2[i].c = c2[i];
+                path2[i].reset();
+            }
+            delay1 = 0.0f;
+        }
+
+        inline void process(float x, float& outI, float& outQ) noexcept
+        {
+            float y1 = x;
+            for (int i = 0; i < 4; ++i)
+                y1 = path1[i].process(y1);
+            outI = delay1;
+            delay1 = y1;
+
+            float y2 = x;
+            for (int i = 0; i < 4; ++i)
+                y2 = path2[i].process(y2);
+            outQ = y2;
+        }
+    };
+
+    float bodeCarrierPhase = 0.0f;
+    float bodeFbL = 0.0f, bodeFbR = 0.0f;
+    BodeHilbertPair bodeHilbertL;
+    BodeHilbertPair bodeHilbertR;
 
     // Time Modulation Engine State (Gross Beat / ShaperBox 3 Circular Buffer)
     std::vector<float> timeModBufL;

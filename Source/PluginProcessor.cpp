@@ -284,6 +284,14 @@ juce::AudioProcessorValueTreeState::ParameterLayout PrismorAudioProcessor::creat
     params.push_back(std::make_unique<juce::AudioParameterFloat>("flangerManual",   "Flanger Manual",    normRange(), 0.35f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>("flangerMix",      "Flanger Mix",       normRange(), 0.50f));
 
+    // Bode Frequency Shifter (Linear Hilbert SSB Frequency Shifter)
+    params.push_back(std::make_unique<juce::AudioParameterBool>("bodeEnable",        "Bode Enable",       false));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("bodeShift",        "Bode Shift Hz",
+        juce::NormalisableRange<float>(-5000.0f, 5000.0f, 0.1f), 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("bodeFeedback",     "Bode Feedback",
+        juce::NormalisableRange<float>(-0.88f, 0.88f, 0.01f), 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("bodeMix",          "Bode Mix",          normRange(), 0.50f));
+
     // -------------------------------------------------------------------------
     // 8.5. Time Modulation Engine (Gross Beat / ShaperBox 3 Buffer Time-Shaping)
     // -------------------------------------------------------------------------
@@ -501,6 +509,11 @@ void PrismorAudioProcessor::initCachedParamPointers()
     cachedParams.flangerManual   = getRaw("flangerManual");
     cachedParams.flangerMix      = getRaw("flangerMix");
 
+    cachedParams.bodeEnable      = getRaw("bodeEnable");
+    cachedParams.bodeShift       = getRaw("bodeShift");
+    cachedParams.bodeFeedback    = getRaw("bodeFeedback");
+    cachedParams.bodeMix         = getRaw("bodeMix");
+
     cachedParams.timeModEnable   = getRaw("timeModEnable");
     cachedParams.timeModMode     = getRaw("timeModMode");
     cachedParams.timeModRate     = getRaw("timeModRate");
@@ -712,6 +725,12 @@ PrismorDSP::SynthParameters PrismorAudioProcessor::readParametersFromAPVTS() con
     p.flangerFeedback = getF(cachedParams.flangerFeedback);
     p.flangerManual   = getF(cachedParams.flangerManual);
     p.flangerMix      = getF(cachedParams.flangerMix);
+
+    // Bode Frequency Shifter
+    p.bodeEnable      = (getF(cachedParams.bodeEnable) > 0.5f);
+    p.bodeShift       = getF(cachedParams.bodeShift);
+    p.bodeFeedback    = getF(cachedParams.bodeFeedback);
+    p.bodeMix         = getF(cachedParams.bodeMix);
 
     // Time Modulation Engine
     p.timeModEnable   = (getF(cachedParams.timeModEnable) > 0.5f);

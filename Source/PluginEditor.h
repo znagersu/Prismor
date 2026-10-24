@@ -358,6 +358,12 @@ private:
     juce::Slider* flangerSpreadKnob   = nullptr;
     juce::Slider* flangerMixKnob      = nullptr;
 
+    // FX 12: Bode Frequency Shifter (Linear Hilbert SSB Frequency Shifter)
+    juce::ToggleButton* bodeEnableBtn   = nullptr;
+    juce::Slider* bodeShiftKnob         = nullptr;
+    juce::Slider* bodeFeedbackKnob      = nullptr;
+    juce::Slider* bodeMixKnob           = nullptr;
+
     // -------------------------------------------------------------------------
     // TIME MODULATION TAB CONTROLS (tabGroup = 4)
     // -------------------------------------------------------------------------
@@ -435,9 +441,9 @@ private:
     juce::Rectangle<int> cardDualFilter;
     juce::Rectangle<int> cardNoiseGen;
 
-    // Layout Card Bounds (FX Tab - 12-Slot 4x3 Grid)
+    // Layout Card Bounds (FX Tab - Dynamic FX Grid)
     juce::Rectangle<int> fxChainStripRect;
-    std::array<juce::Rectangle<int>, 12> fxSlotBounds {}; // Bounds of the 12 visual slots (0..11)
+    std::array<juce::Rectangle<int>, 16> fxSlotBounds {}; // Bounds of the visual slots (0..15)
     int selectedFxSlot { 0 };
     int draggingFxSlot { -1 };
     int dragHoverFxSlot { -1 };
