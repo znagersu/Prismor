@@ -83,9 +83,9 @@ void PrismorAudioProcessorEditor::UpdateNotificationButton::paintButton(
     }
     else if (currentState == UpdateState::InstalledReloadDAW)
     {
-        bgTop = juce::Colour(0xFF0E381A);
-        bgBot = juce::Colour(0xFF06200D);
-        borderCol = juce::Colour(0xFF00FF7F);
+        bgTop = shouldDrawButtonAsDown ? juce::Colour(0xFF082813) : juce::Colour(0xFF0E381A);
+        bgBot = shouldDrawButtonAsDown ? juce::Colour(0xFF04180A) : juce::Colour(0xFF06200D);
+        borderCol = shouldDrawButtonAsHighlighted ? juce::Colour(0xFF55FFA0) : juce::Colour(0xFF00FF7F);
         textCol = juce::Colour(0xFFE8FFF2);
         txt = "UPDATED (Reload DAW)";
     }
@@ -170,9 +170,11 @@ void PrismorAudioProcessorEditor::UpdateNotificationButton::paintButton(
 // SelfUpdateWorkerThread: Downloads, Extracts, and In-Place Replaces Binaries
 // -----------------------------------------------------------------------------
 PrismorAudioProcessorEditor::SelfUpdateWorkerThread::SelfUpdateWorkerThread(
+    bool isStandalone,
     ProgressCallback onProg,
     CompletionCallback onDone)
     : juce::Thread("PrismorSelfUpdater"),
+      isStandaloneHost(isStandalone),
       progressCb(std::move(onProg)),
       doneCb(std::move(onDone))
 {
@@ -270,10 +272,7 @@ void PrismorAudioProcessorEditor::SelfUpdateWorkerThread::run()
 
         reportProgress(0.88f, "INSTALLING...");
         const juce::File currentApp = juce::File::getSpecialLocation(juce::File::currentApplicationFile);
-        const juce::File currentExe = juce::File::getSpecialLocation(juce::File::currentExecutableFile);
-        const bool isStandalone = (juce::JUCEApplicationBase::isStandaloneApp()
-                                   || currentApp.hasFileExtension(".exe")
-                                   || currentExe == currentApp);
+        const bool isStandalone = isStandaloneHost;
 
         bool replacedSuccessfully = false;
 
@@ -352,24 +351,39 @@ void PrismorAudioProcessorEditor::SelfUpdateWorkerThread::run()
                 }
             }
 
-            const juce::File targetVst3 = currentApp;
-            const juce::File backupVst3 = targetVst3.withFileExtension("vst3.old");
-
-            const BOOL renamed = MoveFileExW(targetVst3.getFullPathName().toWideCharPointer(),
-                                             backupVst3.getFullPathName().toWideCharPointer(),
-                                             MOVEFILE_REPLACE_EXISTING);
-            if (renamed)
+            juce::File targetVst3 = currentApp;
+            if (!targetVst3.hasFileExtension(".vst3"))
             {
-                if (newVst3File.copyFileTo(targetVst3))
+                const juce::File commonProgramFiles(juce::SystemStats::getEnvironmentVariable("CommonProgramFiles", "C:\\Program Files\\Common Files"));
+                const juce::File standardVst3 = commonProgramFiles.getChildFile("VST3")
+                                                                  .getChildFile("Prismor.vst3")
+                                                                  .getChildFile("Contents")
+                                                                  .getChildFile("x86_64-win")
+                                                                  .getChildFile("Prismor.vst3");
+                if (standardVst3.existsAsFile())
+                    targetVst3 = standardVst3;
+            }
+
+            if (targetVst3.existsAsFile() && targetVst3.hasFileExtension(".vst3"))
+            {
+                const juce::File backupVst3 = targetVst3.withFileExtension("vst3.old");
+
+                const BOOL renamed = MoveFileExW(targetVst3.getFullPathName().toWideCharPointer(),
+                                                 backupVst3.getFullPathName().toWideCharPointer(),
+                                                 MOVEFILE_REPLACE_EXISTING);
+                if (renamed)
                 {
-                    replacedSuccessfully = true;
-                    MoveFileExW(backupVst3.getFullPathName().toWideCharPointer(), nullptr, MOVEFILE_DELAY_UNTIL_REBOOT);
-                }
-                else
-                {
-                    MoveFileExW(backupVst3.getFullPathName().toWideCharPointer(),
-                               targetVst3.getFullPathName().toWideCharPointer(),
-                               MOVEFILE_REPLACE_EXISTING);
+                    if (newVst3File.copyFileTo(targetVst3))
+                    {
+                        replacedSuccessfully = true;
+                        MoveFileExW(backupVst3.getFullPathName().toWideCharPointer(), nullptr, MOVEFILE_DELAY_UNTIL_REBOOT);
+                    }
+                    else
+                    {
+                        MoveFileExW(backupVst3.getFullPathName().toWideCharPointer(),
+                                   targetVst3.getFullPathName().toWideCharPointer(),
+                                   MOVEFILE_REPLACE_EXISTING);
+                    }
                 }
             }
 
@@ -1217,6 +1231,15 @@ PrismorAudioProcessorEditor::PrismorAudioProcessorEditor(PrismorAudioProcessor& 
         {
             applyRestartOrRelaunch();
         }
+        else if (state == UpdateState::InstalledReloadDAW)
+        {
+            juce::AlertWindow::showMessageBoxAsync(
+                juce::AlertWindow::InfoIcon,
+                "Prismor Updated",
+                "The update has been installed successfully!\n\nPlease save your project and restart your DAW (or reload Prismor) to start using the new version.",
+                "OK"
+            );
+        }
         else if (state == UpdateState::ErrorFallback)
         {
             juce::URL("https://github.com/znagersu/Prismor/releases/latest/download/Prismor_Latest.zip").launchInDefaultBrowser();
@@ -1256,8 +1279,11 @@ void PrismorAudioProcessorEditor::triggerSelfUpdate()
 {
     updateAvailableBtn.setUpdateState(UpdateState::Downloading, updateAvailableBtn.getVersionText(), 0.05f);
 
+    const bool isStandalone = (audioProcessor.wrapperType == juce::AudioProcessor::wrapperType_Standalone);
+
     juce::Component::SafePointer<PrismorAudioProcessorEditor> safeThis(this);
     selfUpdateWorkerThread = std::make_unique<SelfUpdateWorkerThread>(
+        isStandalone,
         [safeThis](float prog, const juce::String& /*msg*/) {
             if (safeThis != nullptr)
             {
@@ -1267,12 +1293,12 @@ void PrismorAudioProcessorEditor::triggerSelfUpdate()
                     safeThis->updateAvailableBtn.setUpdateState(UpdateState::Downloading, safeThis->updateAvailableBtn.getVersionText(), prog);
             }
         },
-        [safeThis](bool success, bool isStandalone, const juce::String& errMsg) {
+        [safeThis](bool success, bool isStandaloneHostApp, const juce::String& errMsg) {
             if (safeThis != nullptr)
             {
                 if (success)
                 {
-                    if (isStandalone)
+                    if (isStandaloneHostApp)
                         safeThis->updateAvailableBtn.setUpdateState(UpdateState::InstalledRestartReady, safeThis->updateAvailableBtn.getVersionText());
                     else
                         safeThis->updateAvailableBtn.setUpdateState(UpdateState::InstalledReloadDAW, safeThis->updateAvailableBtn.getVersionText());
@@ -1290,7 +1316,13 @@ void PrismorAudioProcessorEditor::triggerSelfUpdate()
 void PrismorAudioProcessorEditor::applyRestartOrRelaunch()
 {
 #if JUCE_WINDOWS
+    if (audioProcessor.wrapperType != juce::AudioProcessor::wrapperType_Standalone)
+        return;
+
     const juce::File currentApp = juce::File::getSpecialLocation(juce::File::currentApplicationFile);
+    if (!currentApp.hasFileExtension(".exe"))
+        return;
+
     ShellExecuteW(nullptr, L"open", currentApp.getFullPathName().toWideCharPointer(), nullptr, nullptr, SW_SHOWNORMAL);
     juce::JUCEApplicationBase::quit();
 #endif

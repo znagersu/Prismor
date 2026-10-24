@@ -138,11 +138,12 @@ private:
         using ProgressCallback = std::function<void(float progressNorm, const juce::String& statusMsg)>;
         using CompletionCallback = std::function<void(bool success, bool isStandalone, const juce::String& errorMsg)>;
 
-        SelfUpdateWorkerThread(ProgressCallback onProg, CompletionCallback onDone);
+        SelfUpdateWorkerThread(bool isStandalone, ProgressCallback onProg, CompletionCallback onDone);
         ~SelfUpdateWorkerThread() override;
         void run() override;
 
     private:
+        bool isStandaloneHost { false };
         ProgressCallback progressCb;
         CompletionCallback doneCb;
     };
