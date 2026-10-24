@@ -34,10 +34,14 @@ function findGhCli() {
 
 function packageArtifacts(version) {
     const standaloneCandidates = [
+        path.join(PROJECT_ROOT, 'build', 'Prismor_artefacts', 'Standalone', 'Prismor.exe'),
+        path.join(PROJECT_ROOT, 'build', 'Prismor_artefacts', 'Release', 'Standalone', 'Prismor.exe'),
         path.join(PROJECT_ROOT, 'build', 'Prismor_artefacts', 'Standalone', `Prismor ${version}.exe`),
         path.join(PROJECT_ROOT, 'build', 'Prismor_artefacts', 'Release', 'Standalone', `Prismor ${version}.exe`)
     ];
     const vst3Candidates = [
+        path.join(PROJECT_ROOT, 'build', 'Prismor_artefacts', 'VST3', 'Prismor.vst3'),
+        path.join(PROJECT_ROOT, 'build', 'Prismor_artefacts', 'Release', 'VST3', 'Prismor.vst3'),
         path.join(PROJECT_ROOT, 'build', 'Prismor_artefacts', 'VST3', `Prismor ${version}.vst3`),
         path.join(PROJECT_ROOT, 'build', 'Prismor_artefacts', 'Release', 'VST3', `Prismor ${version}.vst3`)
     ];
@@ -58,11 +62,15 @@ function packageArtifacts(version) {
     }
     fs.mkdirSync(stagingDir, { recursive: true });
 
-    // Copy standalone executable
+    // Standard static names (Industry standard: FL Studio & all DAWs preserve project compatibility)
+    fs.copyFileSync(standaloneExe, path.join(stagingDir, 'Prismor.exe'));
     fs.copyFileSync(standaloneExe, path.join(stagingDir, `Prismor ${version}.exe`));
 
-    // Copy VST3 bundle recursively
-    execSync(`powershell -NoProfile -Command "Copy-Item -Path '${vst3Dir}' -Destination '${stagingDir}' -Recurse -Force"`, {
+    // Copy VST3 bundle as standard Prismor.vst3 and legacy aliased version
+    execSync(`powershell -NoProfile -Command "Copy-Item -Path '${vst3Dir}' -Destination '${path.join(stagingDir, 'Prismor.vst3')}' -Recurse -Force"`, {
+        stdio: 'inherit'
+    });
+    execSync(`powershell -NoProfile -Command "Copy-Item -Path '${vst3Dir}' -Destination '${path.join(stagingDir, `Prismor ${version}.vst3`)}' -Recurse -Force"`, {
         stdio: 'inherit'
     });
 

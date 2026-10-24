@@ -38,7 +38,7 @@ juce_add_plugin(Prismor
     PLUGIN_MANUFACTURER_CODE Cysa
     PLUGIN_CODE Prsm
     FORMATS VST3 Standalone
-    PRODUCT_NAME "Prismor 1.0.18.0"
+    PRODUCT_NAME "Prismor"
 )
 
 juce_generate_juce_header(Prismor)

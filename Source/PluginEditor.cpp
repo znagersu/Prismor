@@ -287,7 +287,29 @@ void PrismorAudioProcessorEditor::SelfUpdateWorkerThread::run()
                 return;
             }
 
-            const juce::File newExe = foundExes.getFirst();
+            juce::File newExe;
+            for (const auto& f : foundExes)
+            {
+                if (f.getFileName().equalsIgnoreCase(currentApp.getFileName()))
+                {
+                    newExe = f;
+                    break;
+                }
+            }
+            if (!newExe.existsAsFile())
+            {
+                for (const auto& f : foundExes)
+                {
+                    if (f.getFileName().equalsIgnoreCase("Prismor.exe"))
+                    {
+                        newExe = f;
+                        break;
+                    }
+                }
+            }
+            if (!newExe.existsAsFile() && !foundExes.isEmpty())
+                newExe = foundExes.getFirst();
+
             const juce::File backupExe = currentApp.withFileExtension("exe.old");
 
             // Windows NTFS Rename Trick: rename running executable, then copy new one to original path
@@ -312,15 +334,24 @@ void PrismorAudioProcessorEditor::SelfUpdateWorkerThread::run()
         else
         {
             // VST3 Plugin
-            juce::Array<juce::File> foundVst3;
-            extractDir.findChildFiles(foundVst3, juce::File::findFiles, true, "*.vst3");
-            if (foundVst3.isEmpty())
+            juce::Array<juce::File> foundVst3Files;
+            extractDir.findChildFiles(foundVst3Files, juce::File::findFiles, true, "*.vst3");
+            if (foundVst3Files.isEmpty())
             {
                 reportDone(false, false, "New VST3 binary not found in update package.");
                 return;
             }
 
-            const juce::File newVst3 = foundVst3.getFirst();
+            juce::File newVst3File = foundVst3Files.getFirst();
+            for (const auto& f : foundVst3Files)
+            {
+                if (f.getParentDirectory().getFileName().equalsIgnoreCase("x86_64-win"))
+                {
+                    newVst3File = f;
+                    break;
+                }
+            }
+
             const juce::File targetVst3 = currentApp;
             const juce::File backupVst3 = targetVst3.withFileExtension("vst3.old");
 
@@ -329,7 +360,7 @@ void PrismorAudioProcessorEditor::SelfUpdateWorkerThread::run()
                                              MOVEFILE_REPLACE_EXISTING);
             if (renamed)
             {
-                if (newVst3.copyFileTo(targetVst3))
+                if (newVst3File.copyFileTo(targetVst3))
                 {
                     replacedSuccessfully = true;
                     MoveFileExW(backupVst3.getFullPathName().toWideCharPointer(), nullptr, MOVEFILE_DELAY_UNTIL_REBOOT);
@@ -339,6 +370,25 @@ void PrismorAudioProcessorEditor::SelfUpdateWorkerThread::run()
                     MoveFileExW(backupVst3.getFullPathName().toWideCharPointer(),
                                targetVst3.getFullPathName().toWideCharPointer(),
                                MOVEFILE_REPLACE_EXISTING);
+                }
+            }
+
+            // Also update standard VST3 common path C:\Program Files\Common Files\VST3\Prismor.vst3 if present
+            const juce::File commonProgramFiles(juce::SystemStats::getEnvironmentVariable("CommonProgramFiles", "C:\\Program Files\\Common Files"));
+            const juce::File commonVst3Dir = commonProgramFiles.getChildFile("VST3").getChildFile("Prismor.vst3");
+            if (commonVst3Dir.exists())
+            {
+                const juce::File commonDll = commonVst3Dir.getChildFile("Contents").getChildFile("x86_64-win").getChildFile("Prismor.vst3");
+                if (commonDll.existsAsFile() && commonDll != targetVst3)
+                {
+                    const juce::File backupCommon = commonDll.withFileExtension("vst3.old");
+                    if (MoveFileExW(commonDll.getFullPathName().toWideCharPointer(), backupCommon.getFullPathName().toWideCharPointer(), MOVEFILE_REPLACE_EXISTING))
+                    {
+                        if (newVst3File.copyFileTo(commonDll))
+                            MoveFileExW(backupCommon.getFullPathName().toWideCharPointer(), nullptr, MOVEFILE_DELAY_UNTIL_REBOOT);
+                        else
+                            MoveFileExW(backupCommon.getFullPathName().toWideCharPointer(), commonDll.getFullPathName().toWideCharPointer(), MOVEFILE_REPLACE_EXISTING);
+                    }
                 }
             }
         }
