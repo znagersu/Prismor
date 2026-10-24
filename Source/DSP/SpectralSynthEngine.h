@@ -360,7 +360,7 @@ public:
         smoothedSpread.setCurrentAndTargetValue(0.65f);
         smoothedBlend.setCurrentAndTargetValue(0.55f);
         smoothedUnisonVoices.setCurrentAndTargetValue(1.0f);
-        smoothedPolyHeadroom.reset(sampleRate, 0.020);
+        smoothedPolyHeadroom.reset(sampleRate, 0.008);
         smoothedPolyHeadroom.setCurrentAndTargetValue(1.0f);
 
         if (timeModBufL.size() != TIME_MOD_BUFFER_SIZE)
@@ -981,16 +981,7 @@ public:
         activeVoicesCount = std::max(1, activeVoicesCount);
 
         const float targetPreFxScale = 1.0f / std::sqrt(static_cast<float>(activeVoicesCount));
-        if (targetPreFxScale < smoothedPolyHeadroom.getCurrentValue())
-        {
-            // Fast attack: immediately clamp down pre-FX headroom when new voices are struck
-            smoothedPolyHeadroom.setCurrentAndTargetValue(targetPreFxScale);
-        }
-        else
-        {
-            // Smooth release: slowly ramp headroom back up over 20-30ms when voices release
-            smoothedPolyHeadroom.setTargetValue(targetPreFxScale);
-        }
+        smoothedPolyHeadroom.setTargetValue(targetPreFxScale);
 
         for (int i = 0; i < numSamples; ++i)
         {
@@ -1066,16 +1057,16 @@ private:
             }
         }
 
-        // Tier 2: Steal the oldest decaying release tail (preserves actively held notes!)
+        // Tier 2: Steal the releasing voice with the lowest current gain (inaudible steal!)
         if (chosen == nullptr)
         {
-            double oldestRelAge = -1.0;
+            float lowestRelGain = 999.0f;
             for (int i = 0; i < effectiveMaxVoices; ++i)
             {
                 auto& v = voices[static_cast<size_t>(i)];
-                if (v.releasing && v.noteAgeSeconds > oldestRelAge)
+                if (v.releasing && v.curGain < lowestRelGain)
                 {
-                    oldestRelAge = v.noteAgeSeconds;
+                    lowestRelGain = v.curGain;
                     chosen = &v;
                 }
             }
@@ -1097,7 +1088,11 @@ private:
         }
 
         for (int i = effectiveMaxVoices; i < MAX_VOICES; ++i)
-            voices[static_cast<size_t>(i)].reset();
+        {
+            auto& v = voices[static_cast<size_t>(i)];
+            if (v.curGain < 0.001f)
+                v.reset();
+        }
 
         if (chosen == nullptr)
             chosen = &voices[0];
@@ -1290,6 +1285,9 @@ private:
         static constexpr int WAVE_TABLE_SIZE = 1024;
         std::array<float, WAVE_TABLE_SIZE> waveTableA {};
         std::array<float, WAVE_TABLE_SIZE> waveTableB {};
+        std::array<float, WAVE_TABLE_SIZE> prevWaveTableA {};
+        std::array<float, WAVE_TABLE_SIZE> prevWaveTableB {};
+        bool hasPrevTable = false;
 
         // 16 Unison Sub-Oscillators per Voice (True Single-Note Stacking!)
         std::array<uint32_t, MAX_UNISON> subPhaseA {};
@@ -1346,6 +1344,9 @@ private:
             targetUniVoiceWeight.fill(0.0f);
             waveTableA.fill(0.0f);
             waveTableB.fill(0.0f);
+            prevWaveTableA.fill(0.0f);
+            prevWaveTableB.fill(0.0f);
+            hasPrevTable = false;
             curGain = 0.0f;
             targetGain = 0.0f;
         }
@@ -1402,6 +1403,9 @@ private:
 
             waveTableA.fill(0.0f);
             waveTableB.fill(0.0f);
+            prevWaveTableA.fill(0.0f);
+            prevWaveTableB.fill(0.0f);
+            hasPrevTable = false;
             curGain = 0.0f;
             targetGain = 0.0f;
         }
@@ -1418,9 +1422,6 @@ private:
             releasing = false;
             releaseEnv = 1.0f;
         }
-
-        static inline std::array<float, NUM_PARTIALS> resynthTablePhaseA {};
-        static inline std::array<float, NUM_PARTIALS> resynthTablePhaseB {};
     };
 
     void initSineLUT()
@@ -1613,9 +1614,6 @@ private:
             const float h = static_cast<float>(k + 1);
             const float normK = static_cast<float>(k) / static_cast<float>(NUM_PARTIALS - 1);
 
-            Voice::resynthTablePhaseA[idx] = resynthEngine.getHarmonicPhaseRaw(0, k);
-            Voice::resynthTablePhaseB[idx] = resynthEngine.getHarmonicPhaseRaw(1, k);
-
             float warpedNormKA = normK, freqWarpMultA = 1.0f;
             float warpedNormKB = normK, freqWarpMultB = 1.0f;
             applyHarmonicWarp(params.warpMode,  params.warpAmount,  normK, warpedNormKA, freqWarpMultA);
@@ -1667,18 +1665,20 @@ private:
             v.freqHzA[idx] = fkA;
             v.freqHzB[idx] = fkB;
 
-            if (fkA >= nyquist && fkB >= nyquist)
+            const bool overA = (fkA >= nyquist);
+            const bool overB = (fkB >= nyquist);
+            if (overA && overB)
             {
                 rawAmpA[idx] = 0.0f;
                 rawAmpB[idx] = 0.0f;
                 continue;
             }
 
-            const float tableGainA = resynthEngine.getHarmonicGainRaw(0, srcKA);
-            const float tableGainB = resynthEngine.getHarmonicGainRaw(1, srcKB);
+            const float tableGainA = (!overA) ? resynthEngine.getHarmonicGainRaw(0, srcKA) : 0.0f;
+            const float tableGainB = (!overB) ? resynthEngine.getHarmonicGainRaw(1, srcKB) : 0.0f;
 
-            float baseA = (fkA < nyquist) ? (tableGainA * (1.0f - effTimbreA) + resAmpA * effTimbreA) : 0.0f;
-            float baseB = (fkB < nyquist) ? (tableGainB * (1.0f - effTimbreB) + resAmpB * effTimbreB) : 0.0f;
+            float baseA = (!overA) ? (tableGainA * (1.0f - effTimbreA) + resAmpA * effTimbreA) : 0.0f;
+            float baseB = (!overB) ? (tableGainB * (1.0f - effTimbreB) + resAmpB * effTimbreB) : 0.0f;
 
             // Independent Spectral Tilt for Field 1 (A) and Field 2 (B)
             if (std::abs(params.harmonicTilt) > 0.01f)
@@ -1801,7 +1801,9 @@ private:
             const size_t idx = static_cast<size_t>(k);
             const float fkA = v.freqHzA[idx];
             const float fkB = v.freqHzB[idx];
-            if (fkA >= nyquist && fkB >= nyquist)
+            const bool overA = (fkA >= nyquist);
+            const bool overB = (fkB >= nyquist);
+            if (overA && overB)
             {
                 v.targetAmpA[idx] = 0.0f;
                 v.targetAmpB[idx] = 0.0f;
@@ -1849,8 +1851,8 @@ private:
                 return mask;
             };
 
-            const float maskA = evalMaskForFreq(fkA);
-            const float maskB = evalMaskForFreq(fkB);
+            const float maskA = (!overA) ? evalMaskForFreq(fkA) : 0.0f;
+            const float maskB = (!overB) ? evalMaskForFreq(fkB) : 0.0f;
             v.filterGainTable[idx] = juce::jlimit(0.0f, 2.5f, maskA);
 
             float tremModA = 1.0f;
@@ -1864,11 +1866,11 @@ private:
                 tremModB = 1.0f - params.tremDepth * (1.0f - lfoB * lfoB);
             }
 
-            const float desiredA = rawAmpA[idx] * maskA * tremModA * baseVoiceScale;
-            const float desiredB = rawAmpB[idx] * maskB * tremModB * baseVoiceScale;
+            const float desiredA = (!overA) ? (rawAmpA[idx] * maskA * tremModA * baseVoiceScale) : 0.0f;
+            const float desiredB = (!overB) ? (rawAmpB[idx] * maskB * tremModB * baseVoiceScale) : 0.0f;
 
-            v.blurStateA[idx] += blurCoeff * (desiredA - v.blurStateA[idx]);
-            v.blurStateB[idx] += blurCoeff * (desiredB - v.blurStateB[idx]);
+            v.blurStateA[idx] = (!overA) ? (v.blurStateA[idx] + blurCoeff * (desiredA - v.blurStateA[idx])) : 0.0f;
+            v.blurStateB[idx] = (!overB) ? (v.blurStateB[idx] + blurCoeff * (desiredB - v.blurStateB[idx])) : 0.0f;
 
             // Apply Volume Articulator AFTER Blur so ShaperBox gates/rates are crisp and sample-responsive!
             v.targetAmpA[idx] = v.blurStateA[idx] * volEnvMod;
@@ -1876,50 +1878,8 @@ private:
         }
 
         // ---------------------------------------------------------------------
-        // Build 1024-Sample Single-Cycle Periodic Waveform for Part A & Part B
-        // (Optimized Serum 2 / RAPID Additive-to-Cycle Synthesis)
-        // ---------------------------------------------------------------------
-        const bool doA = (mixA >= 0.001f);
-        const bool doB = (mixB >= 0.001f);
-
-        if (doA)
-            v.waveTableA.fill(0.0f);
-        if (doB)
-            v.waveTableB.fill(0.0f);
-
-        for (int k = 0; k < NUM_PARTIALS; ++k)
-        {
-            const float aA = v.targetAmpA[static_cast<size_t>(k)];
-            const float aB = v.targetAmpB[static_cast<size_t>(k)];
-            if ((!doA || aA < 1e-5f) && (!doB || aB < 1e-5f))
-                continue;
-
-            const uint32_t step = static_cast<uint32_t>(k + 1) * 4194304u; // (k + 1) * (2^32 / 1024)
-
-            if (doA && aA >= 1e-5f)
-            {
-                uint32_t phA = static_cast<uint32_t>(Voice::resynthTablePhaseA[static_cast<size_t>(k)] * 4294967295.0f);
-                for (int i = 0; i < Voice::WAVE_TABLE_SIZE; ++i)
-                {
-                    v.waveTableA[static_cast<size_t>(i)] += aA * sineLUT[phA >> (32 - 13)];
-                    phA += step;
-                }
-            }
-
-            if (doB && aB >= 1e-5f)
-            {
-                uint32_t phB = static_cast<uint32_t>(Voice::resynthTablePhaseB[static_cast<size_t>(k)] * 4294967295.0f + 0x40000000u);
-                for (int i = 0; i < Voice::WAVE_TABLE_SIZE; ++i)
-                {
-                    v.waveTableB[static_cast<size_t>(i)] += aB * sineLUT[phB >> (32 - 13)];
-                    phB += step;
-                }
-            }
-        }
-
-        // ---------------------------------------------------------------------
-        // Configure 16 Unison Sub-Oscillators inside this Single Voice
-        // (True Single-Note Stacking with Equal-Power Normalization)
+        // 1. Configure 16 Unison Sub-Oscillators inside this Single Voice
+        // (Calculates pitch detune ratios before wavetable bandlimiting)
         // ---------------------------------------------------------------------
         const int targetCount = juce::jlimit(1, MAX_UNISON, static_cast<int>(std::round(uVoicesCount)));
         const float weightSlewRate = dtSeconds / 0.015f; // 15ms crossfade
@@ -1991,6 +1951,94 @@ private:
 
             v.subPhaseIncA[static_cast<size_t>(u)] = static_cast<uint32_t>((subFreqA * invSampleRate) * 4294967296.0);
             v.subPhaseIncB[static_cast<size_t>(u)] = static_cast<uint32_t>((subFreqB * invSampleRate) * 4294967296.0);
+        }
+
+        // ---------------------------------------------------------------------
+        // 2. Build 1024-Sample Single-Cycle Periodic Waveform for Part A & Part B
+        // (Strict Unison-Aware Per-Voice Bandlimiting & Ping-Pong Chunk Smoothing)
+        // ---------------------------------------------------------------------
+        const bool doA = (mixA >= 0.001f);
+        const bool doB = (mixB >= 0.001f);
+
+        if (v.hasPrevTable)
+        {
+            v.prevWaveTableA = v.waveTableA;
+            v.prevWaveTableB = v.waveTableB;
+        }
+        else
+        {
+            v.prevWaveTableA.fill(0.0f);
+            v.prevWaveTableB.fill(0.0f);
+            v.hasPrevTable = true;
+        }
+
+        if (doA)
+            v.waveTableA.fill(0.0f);
+        if (doB)
+            v.waveTableB.fill(0.0f);
+
+        float maxRatio = 1.0f;
+        for (int u = 0; u < maxActiveU; ++u)
+            maxRatio = std::max(maxRatio, pitchRatio[static_cast<size_t>(u)]);
+
+        const float maxF0A = f0A * maxRatio;
+        const float maxF0B = f0B * maxRatio;
+        const float nyquistGuard = nyquist * 0.95f;
+        const float rollOffStart = nyquist * 0.80f;
+
+        for (int k = 0; k < NUM_PARTIALS; ++k)
+        {
+            float aA = v.targetAmpA[static_cast<size_t>(k)];
+            float aB = v.targetAmpB[static_cast<size_t>(k)];
+
+            const float h = static_cast<float>(k + 1);
+            const float fkA_max = h * maxF0A;
+            const float fkB_max = h * maxF0B;
+
+            if (fkA_max >= nyquistGuard)
+            {
+                aA = 0.0f;
+            }
+            else if (fkA_max > rollOffStart)
+            {
+                const float normF = (fkA_max - rollOffStart) / (nyquistGuard - rollOffStart);
+                aA *= 0.5f * (1.0f + std::cos(normF * juce::MathConstants<float>::pi));
+            }
+
+            if (fkB_max >= nyquistGuard)
+            {
+                aB = 0.0f;
+            }
+            else if (fkB_max > rollOffStart)
+            {
+                const float normF = (fkB_max - rollOffStart) / (nyquistGuard - rollOffStart);
+                aB *= 0.5f * (1.0f + std::cos(normF * juce::MathConstants<float>::pi));
+            }
+
+            if ((!doA || aA < 1e-5f) && (!doB || aB < 1e-5f))
+                continue;
+
+            const uint32_t step = static_cast<uint32_t>(k + 1) * 4194304u; // (k + 1) * (2^32 / 1024)
+
+            if (doA && aA >= 1e-5f)
+            {
+                uint32_t phA = static_cast<uint32_t>(resynthEngine.getHarmonicPhaseRaw(0, k) * 4294967295.0f);
+                for (int i = 0; i < Voice::WAVE_TABLE_SIZE; ++i)
+                {
+                    v.waveTableA[static_cast<size_t>(i)] += aA * sineLUT[phA >> (32 - 13)];
+                    phA += step;
+                }
+            }
+
+            if (doB && aB >= 1e-5f)
+            {
+                uint32_t phB = static_cast<uint32_t>(resynthEngine.getHarmonicPhaseRaw(1, k) * 4294967295.0f + 0x40000000u);
+                for (int i = 0; i < Voice::WAVE_TABLE_SIZE; ++i)
+                {
+                    v.waveTableB[static_cast<size_t>(i)] += aB * sineLUT[phB >> (32 - 13)];
+                    phB += step;
+                }
+            }
         }
 
         // Master voice gain (panning & volume envelope & calibrated polyphonic headroom)
@@ -2072,6 +2120,8 @@ private:
 
             for (int s = 0; s < numSamples; ++s)
             {
+                const float crossNew = static_cast<float>(s + 1) * invChunk;
+                const float crossOld = 1.0f - crossNew;
                 float sumVoiceL = 0.0f;
                 float sumVoiceR = 0.0f;
 
@@ -2088,12 +2138,14 @@ private:
                             continue;
                         }
 
-                        // Fast 1024-sample wavetable lookup (Part A only)
+                        // Fast 1024-sample wavetable lookup with chunk crossfade (Part A only)
                         const uint32_t phA = v.subPhaseA[uIdx];
                         const uint32_t idxA0 = phA >> (32 - 10);
                         const uint32_t idxA1 = (idxA0 + 1) & (Voice::WAVE_TABLE_SIZE - 1);
                         const float fracA = static_cast<float>(phA & 0x003FFFFF) * (1.0f / 4194304.0f);
-                        const float sampleA = v.waveTableA[idxA0] * (1.0f - fracA) + v.waveTableA[idxA1] * fracA;
+                        const float sA_old = v.prevWaveTableA[idxA0] * (1.0f - fracA) + v.prevWaveTableA[idxA1] * fracA;
+                        const float sA_new = v.waveTableA[idxA0] * (1.0f - fracA) + v.waveTableA[idxA1] * fracA;
+                        const float sampleA = sA_old * crossOld + sA_new * crossNew;
 
                         const float subSig = sampleA * mixA;
                         sumVoiceL += subSig * wL;
@@ -2115,12 +2167,14 @@ private:
                             continue;
                         }
 
-                        // Fast 1024-sample wavetable lookup (Part B only)
+                        // Fast 1024-sample wavetable lookup with chunk crossfade (Part B only)
                         const uint32_t phB = v.subPhaseB[uIdx];
                         const uint32_t idxB0 = phB >> (32 - 10);
                         const uint32_t idxB1 = (idxB0 + 1) & (Voice::WAVE_TABLE_SIZE - 1);
                         const float fracB = static_cast<float>(phB & 0x003FFFFF) * (1.0f / 4194304.0f);
-                        const float sampleB = v.waveTableB[idxB0] * (1.0f - fracB) + v.waveTableB[idxB1] * fracB;
+                        const float sB_old = v.prevWaveTableB[idxB0] * (1.0f - fracB) + v.prevWaveTableB[idxB1] * fracB;
+                        const float sB_new = v.waveTableB[idxB0] * (1.0f - fracB) + v.waveTableB[idxB1] * fracB;
+                        const float sampleB = sB_old * crossOld + sB_new * crossNew;
 
                         const float subSig = sampleB * mixB;
                         sumVoiceL += subSig * wL;
@@ -2143,19 +2197,22 @@ private:
                             continue;
                         }
 
-                        // Linear interpolation lookup in waveTableA
+                        // Linear interpolation lookup with chunk crossfade
                         const uint32_t phA = v.subPhaseA[uIdx];
                         const uint32_t idxA0 = phA >> (32 - 10);
                         const uint32_t idxA1 = (idxA0 + 1) & (Voice::WAVE_TABLE_SIZE - 1);
                         const float fracA = static_cast<float>(phA & 0x003FFFFF) * (1.0f / 4194304.0f);
-                        const float sampleA = v.waveTableA[idxA0] * (1.0f - fracA) + v.waveTableA[idxA1] * fracA;
+                        const float sA_old = v.prevWaveTableA[idxA0] * (1.0f - fracA) + v.prevWaveTableA[idxA1] * fracA;
+                        const float sA_new = v.waveTableA[idxA0] * (1.0f - fracA) + v.waveTableA[idxA1] * fracA;
+                        const float sampleA = sA_old * crossOld + sA_new * crossNew;
 
-                        // Linear interpolation lookup in waveTableB
                         const uint32_t phB = v.subPhaseB[uIdx];
                         const uint32_t idxB0 = phB >> (32 - 10);
                         const uint32_t idxB1 = (idxB0 + 1) & (Voice::WAVE_TABLE_SIZE - 1);
                         const float fracB = static_cast<float>(phB & 0x003FFFFF) * (1.0f / 4194304.0f);
-                        const float sampleB = v.waveTableB[idxB0] * (1.0f - fracB) + v.waveTableB[idxB1] * fracB;
+                        const float sB_old = v.prevWaveTableB[idxB0] * (1.0f - fracB) + v.prevWaveTableB[idxB1] * fracB;
+                        const float sB_new = v.waveTableB[idxB0] * (1.0f - fracB) + v.waveTableB[idxB1] * fracB;
+                        const float sampleB = sB_old * crossOld + sB_new * crossNew;
 
                         const float subSig = sampleA * mixA + sampleB * mixB;
                         sumVoiceL += subSig * wL;
@@ -2179,6 +2236,8 @@ private:
             }
 
             v.curGain = targetGain;
+            v.prevWaveTableA = v.waveTableA;
+            v.prevWaveTableB = v.waveTableB;
 
             // Keep partial amplitude telemetry updated for visualizer
             for (int k = 0; k < NUM_PARTIALS; ++k)
