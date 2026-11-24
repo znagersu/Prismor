@@ -16,6 +16,11 @@
 
 * { box-sizing: border-box; user-select: none; margin: 0; padding: 0; }
 
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0b0d14; border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: #2b354d; border-radius: 4px; border: 1px solid #161b29; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
+
 html, body {
   width: 100%;
   height: 100%;
@@ -134,7 +139,9 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
   min-height: 0;
+  overflow: hidden;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 3px 8px rgba(0,0,0,0.35);
 }
 .module-card.accent-cyan { border-top: 2px solid var(--cyan); }
@@ -145,11 +152,12 @@ html, body {
 
 .card-header {
   display: flex; align-items: center; justify-content: space-between;
-  border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 4px; min-height: 23px; gap: 6px; flex-shrink: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 4px; min-height: 23px; gap: 6px; flex-shrink: 0; min-width: 0;
 }
-.card-title { font-size: 9.5px; font-weight: 800; letter-spacing: 0.85px; color: var(--text-main); white-space: nowrap; }
+.card-title { font-size: 9.5px; font-weight: 800; letter-spacing: 0.85px; color: var(--text-main); white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .card-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .hint-text { font-size: 9px; color: var(--text-dim); white-space: nowrap; }
+#fxCountBadge { margin-left: 4px; }
 
 .mini-select {
   height: 21px; background: var(--bg-well); color: var(--text-main);
@@ -164,7 +172,7 @@ html, body {
 /* Synth Tab Layout */
 .synth-top-grid {
   display: grid;
-  grid-template-columns: 410px 1fr 260px;
+  grid-template-columns: 410px minmax(0, 1fr) 260px;
   gap: 6px;
   flex: 1;
   min-height: 0;
@@ -223,7 +231,7 @@ html, body {
   height: 156px;
   flex-shrink: 0;
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: minmax(0, 1fr) 340px;
   gap: 6px;
 }
 .bottom-center-body { flex: 1; min-height: 0; display: flex; }
@@ -262,11 +270,11 @@ html, body {
 
 /* Tab 1: FX Rack */
 .fx-chain-strip {
-  height: 38px; background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: 6px;
+  height: 38px; flex-shrink: 0; min-width: 0; background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: 6px;
   display: flex; align-items: center; padding: 0 8px; gap: 6px;
 }
 .fx-strip-label { font-size: 9.5px; font-weight: 800; color: var(--cyan); white-space: nowrap; }
-.fx-pills { display: flex; gap: 4px; flex: 1; overflow-x: auto; align-items: center; }
+.fx-pills { display: flex; gap: 4px; flex: 1; min-width: 0; overflow-x: auto; align-items: center; }
 .fx-pill {
   padding: 3px 7px; border-radius: 3px; border: 1px solid var(--border-subtle);
   background: var(--bg-well); color: var(--text-dim); font-size: 9px; font-weight: 700;
@@ -274,15 +282,17 @@ html, body {
 }
 .fx-pill.enabled { color: var(--text-main); border-color: var(--cyan); background: rgba(34,211,238,0.14); }
 .fx-pill.drag-over { border-color: var(--amber); background: rgba(245,158,11,0.22); }
-.fx-chain-actions { display: flex; gap: 4px; align-items: center; }
+.fx-chain-actions { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
 
 .fx-grid {
-  flex: 1; display: grid; grid-template-columns: repeat(4, 1fr);
-  grid-auto-rows: minmax(180px, auto); gap: 8px; overflow-y: auto; padding-right: 2px;
+  flex: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: minmax(180px, auto); gap: 8px; overflow-x: hidden; overflow-y: auto; padding-right: 4px;
 }
+.fx-grid .mini-select { max-width: 100px; }
+.fx-grid .knob-grid { gap: 2px; }
 
 /* Tab 2: Time Mod */
-.timemod-layout { display: grid; grid-template-columns: 1fr 290px; gap: 8px; flex: 1; min-height: 0; }
+.timemod-layout { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 8px; flex: 1; min-height: 0; }
 
 /* Tab 3: Presets */
 .preset-browser-bar {
@@ -303,7 +313,7 @@ html, body {
 .save-preset-cluster { display: flex; gap: 4px; align-items: center; }
 
 .preset-table-wrap { flex: 1; overflow-y: auto; background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 6px; }
-.preset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.preset-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .preset-item {
   background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 5px;
   padding: 7px 9px; cursor: pointer; display: flex; flex-direction: column; gap: 3px;

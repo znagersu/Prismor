@@ -206,7 +206,7 @@
       knobs: [["blurTime", "TIME", "amber"], ["blurHarmonic", "HARM", "amber"]] },
     { id: 1, short: "TREM", title: "HARMONIC TREMOLO", accent: "cyan", toggle: "tremEnable",
       knobs: [["tremDepth", "DEPTH", "cyan"], ["tremSpeed", "SPEED", "cyan"], ["tremGap", "GAP", "amber"]] },
-    { id: 2, short: "DIST", title: "DISTORTION / 4x DRIVE", accent: "magenta", toggle: "distEnable", select: "distType",
+    { id: 2, short: "DIST", title: "DISTORTION / DRIVE", accent: "magenta", toggle: "distEnable", select: "distType",
       knobs: [["distDrive", "DRIVE", "magenta"], ["distTone", "TONE", "amber"], ["distMix", "MIX", "cyan"]] },
     { id: 3, short: "PHASE", title: "SPECTRAL PHASER", accent: "magenta", toggle: "phaserEnable",
       knobs: [["phaserMix", "MIX", "magenta"], ["phaserWidth", "WIDTH", "cyan"], ["phaserOffset", "OFFST", "amber"], ["phaserSpeed", "SPEED", "magenta"]] },
@@ -218,13 +218,13 @@
       knobs: [["delayTime", "TIME", "amber"], ["delayFeedback", "FDBK", "magenta"], ["delayPingPong", "PING", "cyan"], ["delayFilter", "FILT", "amber"], ["delayMix", "MIX", "cyan"]] },
     { id: 7, short: "REVERB", title: "SHIMMER REVERB", accent: "emerald", toggle: "reverbEnable",
       knobs: [["reverbSize", "SIZE", "emerald"], ["reverbDecay", "DECAY", "emerald"], ["reverbPreDelay", "PRE", "cyan"], ["reverbDamping", "DAMP", "amber"], ["reverbShimmer", "SHIM", "magenta"], ["reverbMix", "MIX", "emerald"]] },
-    { id: 8, short: "OTT", title: "MULTIBAND OTT COMP", accent: "cyan", toggle: "compEnable", select: "compMode",
+    { id: 8, short: "OTT", title: "MULTIBAND OTT", accent: "cyan", toggle: "compEnable", select: "compMode",
       knobs: [["compThreshold", "THRS", "amber"], ["compRatio", "RATIO", "magenta"], ["compAttack", "ATK", "cyan"], ["compRelease", "REL", "cyan"], ["compMakeup", "GAIN", "emerald"], ["compMix", "MIX", "cyan"]] },
-    { id: 9, short: "RING", title: "ZENOLOGY MOD PACK", accent: "magenta", toggle: "ringEnable", select: "ringMode",
+    { id: 9, short: "RING", title: "ZENOLOGY MOD", accent: "magenta", toggle: "ringEnable", select: "ringMode",
       knobs: [["ringFreq", "FREQ", "magenta"], ["ringDepth", "DEPTH", "magenta"], ["ringLfoRate", "LFO", "cyan"], ["ringLfoDepth", "L-DEP", "amber"], ["ringMix", "MIX", "cyan"]] },
-    { id: 10, short: "LO-FI", title: "ZENOLOGY BITCRUSHER", accent: "amber", toggle: "crushEnable", select: "crushMode",
+    { id: 10, short: "LO-FI", title: "BITCRUSHER", accent: "amber", toggle: "crushEnable", select: "crushMode",
       knobs: [["crushBits", "BITS", "amber"], ["crushDownsample", "DOWN", "amber"], ["crushDrive", "DRIVE", "magenta"], ["crushTone", "TONE", "cyan"], ["crushMix", "MIX", "amber"]] },
-    { id: 11, short: "FLANGE", title: "ZENOLOGY FLANGER PACK", accent: "cyan", toggle: "flangerEnable", select: "flangerMode",
+    { id: 11, short: "FLANGE", title: "FLANGER PACK", accent: "cyan", toggle: "flangerEnable", select: "flangerMode",
       knobs: [["flangerRate", "RATE", "cyan"], ["flangerDepth", "DEPTH", "cyan"], ["flangerFeedback", "FDBK", "magenta"], ["flangerManual", "MANU", "amber"], ["flangerMix", "MIX", "cyan"]] },
     { id: 12, short: "BODE", title: "BODE FREQUENCY SHIFTER", accent: "magenta", toggle: "bodeEnable",
       knobs: [["bodeShift", "SHIFT Hz", "magenta"], ["bodeFeedback", "FEEDBCK", "amber"], ["bodeMix", "MIX", "cyan"]] }
@@ -561,7 +561,10 @@
       hdr.appendChild(acts);
       card.appendChild(hdr);
 
-      const colsClass = m.knobs.length <= 3 ? "cols-3" : (m.knobs.length <= 4 ? "cols-4" : (m.knobs.length <= 6 ? "cols-6" : "cols-4"));
+      const colsClass = m.knobs.length <= 3 ? "cols-3"
+        : (m.knobs.length === 4 ? "cols-4"
+        : (m.knobs.length === 5 ? "cols-5"
+        : (m.knobs.length === 6 ? "cols-6" : "cols-4")));
       const kGrid = document.createElement("div");
       kGrid.className = `knob-grid ${colsClass}`;
       for (const [kId, kLbl, kAcc] of m.knobs) {
