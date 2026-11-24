@@ -762,7 +762,6 @@
     const cvs = document.getElementById(canvasId);
     const padX = 6, padY = 8;
     let dragIdx = -1;
-    let lastRightTime = 0, lastRightX = 0, lastRightY = 0;
 
     const toNorm = (clientX, clientY, r) => {
       const uW = Math.max(1, r.width - padX * 2);
@@ -810,19 +809,10 @@
           curve.nodes.splice(hit, 1);
           drawAllSplines();
           onRemove(hit);
-          lastRightTime = 0;
           return;
         }
         if (hit < 0) {
-          const now = performance.now();
-          if (now - lastRightTime <= 420 && Math.hypot(e.clientX - lastRightX, e.clientY - lastRightY) <= 20) {
-            lastRightTime = 0;
-            addNodeOptimistic(curve, nx, ny);
-          } else {
-            lastRightTime = now;
-            lastRightX = e.clientX;
-            lastRightY = e.clientY;
-          }
+          addNodeOptimistic(curve, nx, ny);
         }
         return;
       }
