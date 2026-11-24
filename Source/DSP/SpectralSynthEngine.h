@@ -1902,8 +1902,28 @@ private:
             }
         }
 
-        // Update Spectral Telemetry
+        // Update Spectral Telemetry (unified 20 Hz .. 20 kHz log-frequency axis)
         pendingSnapshot.activeArpStep = currentArpStepAtomic.load(std::memory_order_relaxed);
+        const auto& customFilterCurve = articulators[static_cast<size_t>(ArticulatorTarget::CustomFilterShape)];
+        const float f1CutDisp = 25.0f * std::pow(750.0f, juce::jlimit(0.0f, 1.0f, params.filter1Cutoff));
+        const float f2CutDisp = 25.0f * std::pow(750.0f, juce::jlimit(0.0f, 1.0f, params.filter2Cutoff));
+        auto computeDisplayFilterCurve = [&](float fkDisplay) noexcept -> float
+        {
+            const float g1 = params.filter1Enable ? evaluateFilterMask(params.filter1Type, fkDisplay, f1CutDisp, params.filter1Res, params.filter1Width, customFilterCurve) : 1.0f;
+            const float g2 = params.filter2Enable ? evaluateFilterMask(params.filter2Type, fkDisplay, f2CutDisp, params.filter2Res, params.filter2Width, customFilterCurve) : 1.0f;
+            float combined = 1.0f;
+            if (params.filter1Enable && params.filter2Enable)
+                combined = std::min(2.8f, g1 * g2) * (1.0f - params.filterRouting) + 0.5f * (g1 + g2) * params.filterRouting;
+            else if (params.filter1Enable)
+                combined = g1;
+            else if (params.filter2Enable)
+                combined = g2;
+
+            combined *= evaluateParametricEQGain(fkDisplay, params);
+            return juce::jlimit(0.0f, 1.0f, combined * 0.62f);
+        };
+
+        constexpr float invLogRange = 1.0f / 9.96578428466f; // 1.0f / std::log2(1000.0f) for 20 Hz .. 20 kHz
         if (newestActiveVoice != nullptr)
         {
             pendingSnapshot.voiceActive   = true;
@@ -1915,16 +1935,23 @@ private:
             for (int i = 0; i < VisualizerSnapshot::NUM_BINS; ++i)
             {
                 const size_t k = static_cast<size_t>(i);
-                const float fkA = std::max(20.0f, newestActiveVoice->freqHzA[k]);
-                const float fkB = std::max(20.0f, newestActiveVoice->freqHzB[k]);
-                const float logNormA = (std::log2(fkA / 30.0f)) / std::log2(18000.0f / 30.0f);
-                const float logNormB = (std::log2(fkB / 30.0f)) / std::log2(18000.0f / 30.0f);
-                pendingSnapshot.freqNormA[k] = juce::jlimit(0.0f, 1.0f, logNormA);
-                pendingSnapshot.freqNormB[k] = juce::jlimit(0.0f, 1.0f, logNormB);
-                pendingSnapshot.ampA[k] = juce::jlimit(0.0f, 1.0f, std::pow(newestActiveVoice->curAmpA[k] * 4.8f, 0.55f));
-                pendingSnapshot.ampB[k] = juce::jlimit(0.0f, 1.0f, std::pow(newestActiveVoice->curAmpB[k] * 4.8f, 0.55f));
-                const float fkDisplay = 30.0f * std::pow(600.0f, static_cast<float>(i) / static_cast<float>(VisualizerSnapshot::NUM_BINS - 1));
-                pendingSnapshot.filterCurve[k] = juce::jlimit(0.0f, 1.0f, newestActiveVoice->filterGainTable[k] * evaluateParametricEQGain(fkDisplay, params) * 0.65f);
+                const float fkA = newestActiveVoice->freqHzA[k];
+                const float fkB = newestActiveVoice->freqHzB[k];
+                const bool inA = (fkA >= 20.0f && fkA < 20000.0f);
+                const bool inB = (fkB >= 20.0f && fkB < 20000.0f);
+
+                pendingSnapshot.freqNormA[k] = inA ? juce::jlimit(0.0f, 1.0f, std::log2(fkA / 20.0f) * invLogRange) : 0.0f;
+                pendingSnapshot.freqNormB[k] = inB ? juce::jlimit(0.0f, 1.0f, std::log2(fkB / 20.0f) * invLogRange) : 0.0f;
+
+                const float taperA = (fkA > 16000.0f) ? juce::jlimit(0.0f, 1.0f, (20000.0f - fkA) / 4000.0f) : 1.0f;
+                const float taperB = (fkB > 16000.0f) ? juce::jlimit(0.0f, 1.0f, (20000.0f - fkB) / 4000.0f) : 1.0f;
+
+                pendingSnapshot.ampA[k] = inA ? juce::jlimit(0.0f, 1.0f, std::pow(newestActiveVoice->curAmpA[k] * 2.8f, 0.65f) * taperA) : 0.0f;
+                pendingSnapshot.ampB[k] = inB ? juce::jlimit(0.0f, 1.0f, std::pow(newestActiveVoice->curAmpB[k] * 2.8f, 0.65f) * taperB) : 0.0f;
+
+                const float norm = static_cast<float>(i) / static_cast<float>(VisualizerSnapshot::NUM_BINS - 1);
+                const float fkDisplay = 20.0f * std::pow(1000.0f, norm);
+                pendingSnapshot.filterCurve[k] = computeDisplayFilterCurve(fkDisplay);
             }
         }
         else
@@ -1933,32 +1960,17 @@ private:
             pendingSnapshot.envCursors.fill(0.0f);
             pendingSnapshot.envCursor = 0.0f;
             latestVoiceEnvGain = 0.0f;
-            const auto& customFilterCurve = articulators[static_cast<size_t>(ArticulatorTarget::CustomFilterShape)];
-            const float f1Cut = 25.0f * std::pow(750.0f, juce::jlimit(0.0f, 1.0f, params.filter1Cutoff));
-            const float f2Cut = 25.0f * std::pow(750.0f, juce::jlimit(0.0f, 1.0f, params.filter2Cutoff));
 
             for (int i = 0; i < VisualizerSnapshot::NUM_BINS; ++i)
             {
                 const size_t k = static_cast<size_t>(i);
                 const float norm = static_cast<float>(i) / static_cast<float>(VisualizerSnapshot::NUM_BINS - 1);
-                const float fk = 30.0f * std::pow(600.0f, norm);
+                const float fk = 20.0f * std::pow(1000.0f, norm);
                 pendingSnapshot.freqNormA[k] = norm;
                 pendingSnapshot.freqNormB[k] = norm;
                 pendingSnapshot.ampA[k] = 0.0f;
                 pendingSnapshot.ampB[k] = 0.0f;
-
-                const float g1 = params.filter1Enable ? evaluateFilterMask(params.filter1Type, fk, f1Cut, params.filter1Res, params.filter1Width, customFilterCurve) : 1.0f;
-                const float g2 = params.filter2Enable ? evaluateFilterMask(params.filter2Type, fk, f2Cut, params.filter2Res, params.filter2Width, customFilterCurve) : 1.0f;
-                float combined = 1.0f;
-                if (params.filter1Enable && params.filter2Enable)
-                    combined = (g1 * g2) * (1.0f - params.filterRouting) + 0.5f * (g1 + g2) * params.filterRouting;
-                else if (params.filter1Enable)
-                    combined = g1;
-                else if (params.filter2Enable)
-                    combined = g2;
-
-                combined *= evaluateParametricEQGain(fk, params);
-                pendingSnapshot.filterCurve[k] = juce::jlimit(0.0f, 1.0f, combined * 0.60f);
+                pendingSnapshot.filterCurve[k] = computeDisplayFilterCurve(fk);
             }
         }
     }

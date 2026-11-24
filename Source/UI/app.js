@@ -751,36 +751,75 @@
     const W = rect.width, H = rect.height;
     ctx.clearRect(0, 0, W, H);
 
+    const padX = 6;
+    const padTop = 6;
+    const padBottom = 15;
+    const usableW = Math.max(10, W - padX * 2);
+    const usableH = Math.max(10, H - padTop - padBottom);
+    const baseY = H - padBottom;
+
     ctx.strokeStyle = "rgba(255,255,255,0.05)";
+    ctx.lineWidth = 1;
     for (let i = 1; i < 4; i++) {
-      ctx.beginPath(); ctx.moveTo(0, (H * i) / 4); ctx.lineTo(W, (H * i) / 4); ctx.stroke();
+      const y = padTop + (usableH * i) / 4;
+      ctx.beginPath(); ctx.moveTo(padX, y); ctx.lineTo(W - padX, y); ctx.stroke();
     }
+    ctx.beginPath(); ctx.moveTo(padX, baseY); ctx.lineTo(W - padX, baseY); ctx.stroke();
 
     if (harmEditMode) {
       const bars = harmEditPart === 0 ? barsA : barsB;
       const col = harmEditPart === 0 ? ACCENT_HEX.cyan : ACCENT_HEX.magenta;
-      const bw = W / 64;
+      const bw = usableW / 64;
       for (let i = 0; i < 64; i++) {
         const val = bars[i] || 0;
-        const bh = val * (H - 12);
+        const bh = val * usableH;
+        const x = padX + i * bw + 0.5;
+        const barW = Math.max(1.2, bw - 1.2);
         ctx.fillStyle = col;
-        ctx.fillRect(i * bw + 1, H - bh - 4, Math.max(1.5, bw - 2), bh);
+        ctx.fillRect(Math.min(W - padX - barW, x), baseY - bh, barW, bh);
       }
       return;
+    }
+
+    // Subtle log-frequency vertical gridlines & markers (100 Hz, 1 kHz, 10 kHz over 20 Hz..20 kHz)
+    const invLogRange = 1 / Math.log2(1000);
+    ctx.font = "9px monospace";
+    ctx.textAlign = "center";
+    for (const [hz, label] of [[100, "100"], [1000, "1k"], [10000, "10k"]]) {
+      const gx = padX + (Math.log2(hz / 20) * invLogRange) * usableW;
+      ctx.strokeStyle = "rgba(255,255,255,0.05)";
+      ctx.beginPath(); ctx.moveTo(gx, padTop); ctx.lineTo(gx, baseY); ctx.stroke();
+      ctx.fillStyle = "rgba(127, 140, 168, 0.72)";
+      ctx.fillText(label, gx, H - 3);
     }
 
     if (!latestTelemetry) return;
     const sA = latestTelemetry.specA || [];
     const sB = latestTelemetry.specB || [];
+    const fA = latestTelemetry.freqA || [];
+    const fB = latestTelemetry.freqB || [];
     const flt = latestTelemetry.filt || [];
-    const n = sA.length || 48;
-    const bw = W / n;
+    const n = Math.max(sA.length, sB.length);
 
     for (let i = 0; i < n; i++) {
-      const aH = (sA[i] || 0) * (H - 10);
-      const bH = (sB[i] || 0) * (H - 10);
-      if (aH > 1) { ctx.fillStyle = "rgba(34,211,238,0.72)"; ctx.fillRect(i * bw, H - aH, Math.max(2, bw * 0.6), aH); }
-      if (bH > 1) { ctx.fillStyle = "rgba(244,63,142,0.55)"; ctx.fillRect(i * bw + bw * 0.35, H - bH, Math.max(2, bw * 0.6), bH); }
+      const vA = sA[i] || 0;
+      if (vA > 0.003) {
+        const normA = (fA.length === sA.length) ? fA[i] : (i / Math.max(1, n - 1));
+        const clampedA = Math.max(0, Math.min(1, normA));
+        const xA = Math.min(W - padX - 2, padX + clampedA * usableW);
+        const aH = vA * usableH;
+        ctx.fillStyle = "rgba(34,211,238,0.78)";
+        ctx.fillRect(xA, baseY - aH, 2.0, aH);
+      }
+      const vB = sB[i] || 0;
+      if (vB > 0.003) {
+        const normB = (fB.length === sB.length) ? fB[i] : (i / Math.max(1, n - 1));
+        const clampedB = Math.max(0, Math.min(1, normB));
+        const xB = Math.min(W - padX - 2, padX + clampedB * usableW + 0.8);
+        const bH = vB * usableH;
+        ctx.fillStyle = "rgba(244,63,142,0.58)";
+        ctx.fillRect(xB, baseY - bH, 2.0, bH);
+      }
     }
 
     if (flt.length > 1) {
@@ -788,8 +827,8 @@
       ctx.lineWidth = 1.8;
       ctx.beginPath();
       flt.forEach((v, i) => {
-        const px = (i / (flt.length - 1)) * W;
-        const py = H - Math.max(0, Math.min(1, v)) * (H - 8) - 4;
+        const px = padX + (i / (flt.length - 1)) * usableW;
+        const py = baseY - Math.max(0, Math.min(1, v)) * usableH;
         if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
       });
       ctx.stroke();
@@ -905,8 +944,8 @@
       if (!harmEditMode) return;
       const paintBar = (ev) => {
         const r = specCvs.getBoundingClientRect();
-        const barIdx = Math.max(0, Math.min(63, Math.floor(((ev.clientX - r.left) / r.width) * 64)));
-        const val = Math.max(0, Math.min(1, 1 - (ev.clientY - r.top) / r.height));
+        const barIdx = Math.max(0, Math.min(63, Math.floor(((ev.clientX - r.left - 6) / Math.max(1, r.width - 12)) * 64)));
+        const val = Math.max(0, Math.min(1, 1 - (ev.clientY - r.top - 6) / Math.max(1, r.height - 21)));
         (harmEditPart === 0 ? barsA : barsB)[barIdx] = val;
         send("setHarmonicBar", { part: harmEditPart, idx: barIdx, val });
         drawSpectrumOrHarmonics();

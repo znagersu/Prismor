@@ -305,17 +305,22 @@ void WebViewEditor::sendTelemetryToJS()
     obj->setProperty("tmCursor", static_cast<double>(snap.timeModCursor));
     obj->setProperty("tmOff", static_cast<double>(snap.timeModOffsetNorm));
 
-    juce::Array<juce::var> sA, sB, flt, tmW;
-    for (int i = 0; i < PrismorDSP::VisualizerSnapshot::NUM_BINS; i += 2)
+    juce::Array<juce::var> fA, fB, sA, sB, flt, tmW;
+    auto r3 = [](float v) { return std::round(static_cast<double>(v) * 1000.0) * 0.001; };
+    for (int i = 0; i < PrismorDSP::VisualizerSnapshot::NUM_BINS; ++i)
     {
         const size_t k = static_cast<size_t>(i);
-        sA.add(static_cast<double>(snap.ampA[k]));
-        sB.add(static_cast<double>(snap.ampB[k]));
-        flt.add(static_cast<double>(snap.filterCurve[k]));
+        fA.add(r3(snap.freqNormA[k]));
+        fB.add(r3(snap.freqNormB[k]));
+        sA.add(r3(snap.ampA[k]));
+        sB.add(r3(snap.ampB[k]));
+        flt.add(r3(snap.filterCurve[k]));
     }
     for (size_t i = 0; i < snap.timeModWavePreview.size(); i += 2)
-        tmW.add(static_cast<double>(snap.timeModWavePreview[i]));
+        tmW.add(r3(snap.timeModWavePreview[i]));
 
+    obj->setProperty("freqA", fA);
+    obj->setProperty("freqB", fB);
     obj->setProperty("specA", sA);
     obj->setProperty("specB", sB);
     obj->setProperty("filt", flt);
