@@ -85,6 +85,7 @@ public:
         float flatY = 1.0f;
         if (target == ArticulatorTarget::Pitch ||
             target == ArticulatorTarget::Filter1Cutoff ||
+            target == ArticulatorTarget::Timbre ||
             target == ArticulatorTarget::Prism)
         {
             flatY = 0.5f;
@@ -109,11 +110,9 @@ public:
                 tempoSync.store(false, std::memory_order_relaxed);
                 syncDivision.store(4, std::memory_order_relaxed); // 1/4
                 rate.store(1.5f, std::memory_order_relaxed);
-                nodes.push_back({ 0.0f,  0.05f, -0.45f, 0 });
-                nodes.push_back({ 0.06f, 1.00f,  0.30f, 0 });
-                nodes.push_back({ 0.42f, 0.72f,  0.20f, 0 });
-                nodes.push_back({ 0.82f, 0.58f,  0.35f, 0 });
-                nodes.push_back({ 1.0f,  0.15f,  0.0f,  0 });
+                nodes.push_back({ 0.0f,  1.00f,  0.0f,  0 });
+                nodes.push_back({ 0.5f,  1.00f,  0.0f,  0 });
+                nodes.push_back({ 1.0f,  1.00f,  0.0f,  0 });
                 break;
 
             case ArticulatorTarget::Pitch:
@@ -132,10 +131,9 @@ public:
                 tempoSync.store(false, std::memory_order_relaxed);
                 syncDivision.store(3, std::memory_order_relaxed); // 1/2
                 rate.store(1.5f, std::memory_order_relaxed);
-                nodes.push_back({ 0.0f,  0.85f,  0.45f, 0 });
-                nodes.push_back({ 0.28f, 0.38f, -0.25f, 0 });
-                nodes.push_back({ 0.65f, 0.62f,  0.30f, 0 });
-                nodes.push_back({ 1.0f,  0.85f,  0.0f,  0 });
+                nodes.push_back({ 0.0f,  0.5f,  0.0f, 0 });
+                nodes.push_back({ 0.5f,  0.5f,  0.0f, 0 });
+                nodes.push_back({ 1.0f,  0.5f,  0.0f, 0 });
                 break;
 
             case ArticulatorTarget::CustomFilterShape:
@@ -156,9 +154,9 @@ public:
                 tempoSync.store(true, std::memory_order_relaxed);
                 syncDivision.store(2, std::memory_order_relaxed); // 1 Bar
                 rate.store(1.0f, std::memory_order_relaxed);
-                nodes.push_back({ 0.0f,  0.25f, -0.35f, 1 });
-                nodes.push_back({ 0.45f, 0.85f,  0.35f, 1 });
-                nodes.push_back({ 1.0f,  0.25f,  0.0f,  1 });
+                nodes.push_back({ 0.0f,  0.5f,  0.0f, 0 });
+                nodes.push_back({ 0.5f,  0.5f,  0.0f, 0 });
+                nodes.push_back({ 1.0f,  0.5f,  0.0f, 0 });
                 break;
 
             case ArticulatorTarget::Prism:
@@ -740,6 +738,29 @@ public:
             nodes = loaded;
             rebuildLUT();
         }
+    }
+
+    juce::var toJsonVar() const
+    {
+        juce::ScopedLock sl(lock);
+        auto* obj = new juce::DynamicObject();
+        obj->setProperty("mode", mode.load(std::memory_order_acquire));
+        obj->setProperty("rate", static_cast<double>(rate.load(std::memory_order_acquire)));
+        obj->setProperty("tempoSync", tempoSync.load(std::memory_order_acquire));
+        obj->setProperty("syncDivision", syncDivision.load(std::memory_order_acquire));
+        obj->setProperty("globalShapeMode", globalShapeMode.load(std::memory_order_acquire));
+        juce::Array<juce::var> nodeArr;
+        for (const auto& n : nodes)
+        {
+            auto* no = new juce::DynamicObject();
+            no->setProperty("x", static_cast<double>(n.x));
+            no->setProperty("y", static_cast<double>(n.y));
+            no->setProperty("tension", static_cast<double>(n.tension));
+            no->setProperty("shapeMode", n.shapeMode);
+            nodeArr.add(juce::var(no));
+        }
+        obj->setProperty("nodes", nodeArr);
+        return juce::var(obj);
     }
 
 private:

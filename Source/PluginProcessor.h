@@ -1,10 +1,13 @@
 #pragma once
 #include <JuceHeader.h>
 #include "DSP/SpectralSynthEngine.h"
+#include <vector>
 
 class PrismorAudioProcessor : public juce::AudioProcessor
 {
 public:
+    static constexpr int kMaxProcChunk = 512;
+
     PrismorAudioProcessor();
     ~PrismorAudioProcessor() override;
 
@@ -60,6 +63,7 @@ public:
     int getCurrentPresetIndex() const noexcept { return currentPreset; }
     juce::StringArray getFactoryPresetNames() const;
     std::vector<FactoryPresetMetadata> getFactoryPresetBank() const;
+    std::vector<FactoryPresetMetadata> getUserPresetMetadata() const;
 
     juce::File getUserPresetDirectory() const;
     bool saveUserPreset(const juce::String& name, const juce::String& category, const juce::String& author, const juce::String& description);
@@ -72,6 +76,7 @@ public:
     juce::StringArray getFilterSubPresetNames() const;
     juce::StringArray getDistortionSubPresetNames() const;
 
+    static const juce::StringArray& getAllParameterIds();
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
     struct CachedParamPointers
@@ -279,13 +284,17 @@ public:
 
 private:
     void initCachedParamPointers();
-    CachedParamPointers cachedParams;
+    void appendEngineStateToTree(juce::ValueTree& state) const;
+    void extractEngineStateFromTree(juce::ValueTree& tree);
     PrismorDSP::SynthParameters readParametersFromAPVTS() const noexcept;
+
+    CachedParamPointers cachedParams;
 
     juce::AudioProcessorValueTreeState apvts;
     PrismorDSP::SpectralSynthEngine synthEngine;
     juce::AudioProcessLoadMeasurer loadMeasurer;
     juce::MidiKeyboardState keyboardState;
+    juce::AudioBuffer<float> stereoScratchBuffer;
     int currentPreset { 0 };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PrismorAudioProcessor)

@@ -1,5 +1,6 @@
 # Build artifacts and caches
 build/
+render_out/
 cmake-build-debug/
 .idea/
 .vscode/

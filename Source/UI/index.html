@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PRISMOR</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Top Brushed-Titanium Hardware Header -->
+    <header class="top-header">
+      <div class="brand-cluster">
+        <div class="brand-logo">PRISMOR</div>
+        <div class="brand-sub" id="versionBadge">v2.0.0</div>
+      </div>
+
+      <nav class="tab-bar">
+        <button class="tab-btn active" data-tab="0">SYNTH ENGINE</button>
+        <button class="tab-btn" data-tab="1">FX RACK <span id="fxCountBadge">[13]</span></button>
+        <button class="tab-btn" data-tab="2">TIME MOD</button>
+        <button class="tab-btn" data-tab="3">PRESETS</button>
+      </nav>
+
+      <div class="preset-bar">
+        <button class="nav-arrow-btn" id="prevPresetBtn" title="Previous Preset">&lt;</button>
+        <select id="presetQuickSelect" class="preset-select"></select>
+        <button class="nav-arrow-btn" id="nextPresetBtn" title="Next Preset">&gt;</button>
+        <button class="pill-btn amber" id="initPresetBtn">INIT</button>
+      </div>
+
+      <div class="header-knobs">
+        <div class="mini-knob-slot" data-param="timbre" data-label="TIMBRE" data-accent="cyan"></div>
+        <div class="mini-knob-slot" data-param="prismAmount" data-label="PRISM" data-accent="magenta"></div>
+        <div class="mini-knob-slot" data-param="limiterThreshDb" data-label="CEIL" data-accent="amber"></div>
+        <div class="mini-knob-slot" data-param="masterGainDb" data-label="MASTER" data-accent="emerald"></div>
+      </div>
+
+      <div class="telemetry-cluster">
+        <div class="meter-pair">
+          <div class="meter-track"><div class="meter-fill" id="meterL"></div></div>
+          <div class="meter-track"><div class="meter-fill" id="meterR"></div></div>
+        </div>
+        <div class="stat-stack">
+          <span id="cpuStat">CPU 0.0%</span>
+          <span id="voiceStat">V: 0/8</span>
+        </div>
+        <button class="pill-btn red" id="panicBtn" title="All Notes Off">PANIC</button>
+        <button class="update-btn hidden" id="updateBtn">UPDATE</button>
+      </div>
+    </header>
+
+    <!-- Main Tab Views -->
+    <main class="main-stage">
+      <!-- TAB 0: SYNTH ENGINE -->
+      <section class="tab-view active" id="tab-0">
+        <div class="synth-top-grid">
+          <!-- Field 1 & Field 2 stacked or paired -->
+          <div class="synth-col col-fields">
+            <!-- Card 01: Field 1 (Part A) -->
+            <div class="module-card accent-cyan">
+              <div class="card-header">
+                <span class="card-title">01 // FREQUENCY FIELD 1 (PART A)</span>
+                <div class="card-actions">
+                  <select id="waveASelect" class="mini-select cyan"></select>
+                  <button class="mini-btn" id="toggleHarmEditBtn">HARMONICS</button>
+                </div>
+              </div>
+              <div class="knob-grid cols-6">
+                <div class="knob-slot" data-param="oscAOct" data-label="OCT" data-accent="cyan"></div>
+                <div class="knob-slot" data-param="oscASemi" data-label="SEMI" data-accent="cyan"></div>
+                <div class="knob-slot" data-param="oscAFine" data-label="FINE" data-accent="cyan"></div>
+                <div class="knob-slot" data-param="oscACoarse" data-label="COARS" data-accent="cyan"></div>
+                <div class="knob-slot" data-param="startPhase" data-label="PHASE" data-accent="cyan"></div>
+                <div class="knob-slot" data-param="phaseRandom" data-label="RND" data-accent="cyan"></div>
+                <div class="knob-slot" data-param="timbre" data-label="TIMBR" data-accent="cyan"></div>
+                <div class="knob-slot" data-param="warpAmount" data-label="WARP" data-accent="magenta"></div>
+                <div class="knob-slot" data-param="harmonicScale" data-label="SCALE" data-accent="cyan"></div>
+                <div class="knob-slot" data-param="harmonicTilt" data-label="TILT" data-accent="amber"></div>
+                <div class="knob-slot" data-param="vibDepth" data-label="VIB" data-accent="cyan"></div>
+                <div class="select-slot">
+                  <label>WARP M</label>
+                  <select data-param-select="warpMode" class="mini-select cyan"></select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 02: Field 2 (Part B) -->
+            <div class="module-card accent-magenta">
+              <div class="card-header">
+                <span class="card-title">02 // FREQUENCY FIELD 2 (PART B)</span>
+                <div class="card-actions">
+                  <select id="waveBSelect" class="mini-select magenta"></select>
+                  <button class="mini-btn" id="copyABBtn" title="Copy Part A Harmonics to B">A&rarr;B</button>
+                </div>
+              </div>
+              <div class="knob-grid cols-6">
+                <div class="knob-slot" data-param="oscBOct" data-label="OCT" data-accent="magenta"></div>
+                <div class="knob-slot" data-param="oscBSemi" data-label="SEMI" data-accent="magenta"></div>
+                <div class="knob-slot" data-param="oscBFine" data-label="FINE" data-accent="magenta"></div>
+                <div class="knob-slot" data-param="oscBPitch" data-label="COARS" data-accent="magenta"></div>
+                <div class="knob-slot" data-param="oscBPhase" data-label="PHASE" data-accent="magenta"></div>
+                <div class="knob-slot" data-param="vibSpeed" data-label="V-SPD" data-accent="magenta"></div>
+                <div class="knob-slot" data-param="timbreB" data-label="TIMBR" data-accent="magenta"></div>
+                <div class="knob-slot" data-param="warpAmountB" data-label="WARP" data-accent="cyan"></div>
+                <div class="knob-slot" data-param="harmonicScaleB" data-label="SCALE" data-accent="magenta"></div>
+                <div class="knob-slot" data-param="harmonicTiltB" data-label="TILT" data-accent="amber"></div>
+                <div class="knob-slot" data-param="abMix" data-label="A/B" data-accent="emerald"></div>
+                <div class="select-slot">
+                  <label>WARP M</label>
+                  <select data-param-select="warpModeB" class="mini-select magenta"></select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Center Column: Prism, Voicing/Unison, Dual Filter, Noise -->
+          <div class="synth-col col-center">
+            <div class="module-row two-col">
+              <!-- Card 03: Prism & Pluck -->
+              <div class="module-card accent-magenta">
+                <div class="card-header">
+                  <span class="card-title">03 // PRISM &amp; PLUCK</span>
+                  <div class="card-actions">
+                    <button class="toggle-btn magenta" data-param-toggle="prismEnable">PRISM</button>
+                    <button class="toggle-btn amber" data-param-toggle="pluckEnable">PLUCK</button>
+                  </div>
+                </div>
+                <div class="knob-grid cols-4">
+                  <div class="knob-slot" data-param="prismAmount" data-label="PRISM" data-accent="magenta"></div>
+                  <div class="select-slot"><label>MODE</label><select data-param-select="prismMode" class="mini-select magenta"></select></div>
+                  <div class="knob-slot" data-param="harmShift" data-label="SHIFT" data-accent="magenta"></div>
+                  <div class="knob-slot" data-param="harmGap" data-label="GAP" data-accent="cyan"></div>
+                  <div class="knob-slot" data-param="harmWidth" data-label="WIDTH" data-accent="cyan"></div>
+                  <div class="knob-slot" data-param="pluckTime" data-label="P-TM" data-accent="amber"></div>
+                  <div class="knob-slot" data-param="pluckBlur" data-label="P-BLR" data-accent="amber"></div>
+                  <div class="knob-slot" data-param="pitchFreq" data-label="PITCH" data-accent="emerald"></div>
+                </div>
+              </div>
+
+              <!-- Card 04: Voicing & Unison -->
+              <div class="module-card accent-cyan">
+                <div class="card-header">
+                  <span class="card-title">04 // VOICING &amp; 16x UNISON</span>
+                  <div class="card-actions">
+                    <button class="toggle-btn cyan" data-param-toggle="autoGlide">GLIDE</button>
+                  </div>
+                </div>
+                <div class="knob-grid cols-4">
+                  <div class="select-slot"><label>VOICE</label><select data-param-select="voicingMode" class="mini-select cyan"></select></div>
+                  <div class="knob-slot" data-param="maxVoices" data-label="LIMIT" data-accent="cyan"></div>
+                  <div class="knob-slot" data-param="portaTime" data-label="PORTA" data-accent="cyan"></div>
+                  <div class="knob-slot" data-param="portaCurve" data-label="CURVE" data-accent="amber"></div>
+                  <div class="knob-slot" data-param="unisonVoices" data-label="UNI V" data-accent="cyan"></div>
+                  <div class="knob-slot" data-param="unisonDetune" data-label="DETUN" data-accent="cyan"></div>
+                  <div class="knob-slot" data-param="unisonSpread" data-label="SPRD" data-accent="magenta"></div>
+                  <div class="knob-slot" data-param="unisonBlend" data-label="BLEND" data-accent="cyan"></div>
+                  <div class="knob-slot" data-param="unisonPhase" data-label="PHAS" data-accent="amber"></div>
+                  <div class="select-slot col-span-3"><label>STACK MODE</label><select data-param-select="unisonStackMode" class="mini-select cyan"></select></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 05 & 06: Dual Spectral Filter + Noise -->
+            <div class="module-row filter-noise-row">
+              <div class="module-card accent-amber flex-3">
+                <div class="card-header">
+                  <span class="card-title">05 // DUAL SPECTRAL FILTER &amp; 4x DRIVE</span>
+                  <div class="card-actions">
+                    <select id="filterSubSelect" class="mini-select amber"></select>
+                    <button class="toggle-btn amber" data-param-toggle="filter1Enable">F1</button>
+                    <button class="toggle-btn cyan" data-param-toggle="filter2Enable">F2</button>
+                  </div>
+                </div>
+                <div class="filter-subrows">
+                  <div class="knob-grid cols-6">
+                    <div class="select-slot"><label>F1 TYPE</label><select data-param-select="filter1Type" class="mini-select amber"></select></div>
+                    <div class="knob-slot" data-param="filter1Cutoff" data-label="CUT 1" data-accent="amber"></div>
+                    <div class="knob-slot" data-param="filter1Res" data-label="RES 1" data-accent="amber"></div>
+                    <div class="knob-slot" data-param="filter1KeyTrack" data-label="KEY 1" data-accent="amber"></div>
+                    <div class="knob-slot" data-param="filter1Width" data-label="WID 1" data-accent="amber"></div>
+                    <div class="knob-slot" data-param="filterRouting" data-label="S/PAR" data-accent="magenta"></div>
+                  </div>
+                  <div class="knob-grid cols-6">
+                    <div class="select-slot"><label>F2 TYPE</label><select data-param-select="filter2Type" class="mini-select cyan"></select></div>
+                    <div class="knob-slot" data-param="filter2Cutoff" data-label="CUT 2" data-accent="cyan"></div>
+                    <div class="knob-slot" data-param="filter2Res" data-label="RES 2" data-accent="cyan"></div>
+                    <div class="knob-slot" data-param="filter2KeyTrack" data-label="KEY 2" data-accent="cyan"></div>
+                    <div class="knob-slot" data-param="filter2Width" data-label="WID 2" data-accent="cyan"></div>
+                    <div class="knob-slot" data-param="filterDrive" data-label="DRIVE" data-accent="magenta"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="module-card accent-emerald flex-2">
+                <div class="card-header">
+                  <span class="card-title">06 // NOISE ENGINE</span>
+                  <div class="card-actions">
+                    <button class="toggle-btn emerald" data-param-toggle="noiseEnable">ON</button>
+                  </div>
+                </div>
+                <div class="knob-grid cols-4">
+                  <div class="select-slot col-span-2"><label>TYPE</label><select data-param-select="noiseType" class="mini-select emerald"></select></div>
+                  <div class="knob-slot" data-param="noiseLevel" data-label="LEVEL" data-accent="emerald"></div>
+                  <div class="knob-slot" data-param="noisePitch" data-label="PITCH" data-accent="emerald"></div>
+                  <div class="knob-slot" data-param="noiseKeyTrack" data-label="KEY" data-accent="emerald"></div>
+                  <div class="knob-slot" data-param="noisePhase" data-label="STEREO" data-accent="cyan"></div>
+                  <div class="knob-slot" data-param="noisePan" data-label="PAN" data-accent="cyan"></div>
+                  <div class="knob-slot" data-param="noiseFilter" data-label="LP/HP" data-accent="amber"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Live Spectral Display / Harmonic Editor -->
+          <div class="synth-col col-vis">
+            <div class="module-card accent-cyan full-height">
+              <div class="card-header">
+                <span class="card-title" id="visCardTitle">LIVE HARMONIC SPECTRUM</span>
+                <div class="card-actions" id="harmEditTools" style="display:none;">
+                  <button class="mini-btn" data-harm-part="0" id="harmPartABtn">A</button>
+                  <button class="mini-btn" data-harm-part="1" id="harmPartBBtn">B</button>
+                  <button class="mini-btn" data-harm-op="odd">ODD</button>
+                  <button class="mini-btn" data-harm-op="even">EVN</button>
+                  <button class="mini-btn" data-harm-op="lpf">LPF</button>
+                  <button class="mini-btn" data-harm-op="smooth">SMT</button>
+                </div>
+              </div>
+              <canvas id="spectrumCanvas"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Deck -->
+        <div class="synth-bottom-deck">
+          <!-- Bottom Left: Layering & Strum -->
+          <div class="module-card accent-emerald bottom-left">
+            <div class="card-header">
+              <span class="card-title">LAYER MIX &amp; STRUM</span>
+            </div>
+            <div class="knob-grid cols-4">
+              <div class="knob-slot" data-param="velLink" data-label="VEL" data-accent="emerald"></div>
+              <div class="knob-slot" data-param="partPan" data-label="PAN" data-accent="cyan"></div>
+              <div class="knob-slot" data-param="strumTime" data-label="STRUM" data-accent="amber"></div>
+              <div class="knob-slot" data-param="strumTension" data-label="SLOPE" data-accent="amber"></div>
+            </div>
+            <div class="knob-grid cols-4 ahdsr-row">
+              <div class="knob-slot" data-param="envAttack" data-label="ATK" data-accent="amber"></div>
+              <div class="knob-slot" data-param="envHold" data-label="HOLD" data-accent="amber"></div>
+              <div class="knob-slot" data-param="envDecay" data-label="DEC" data-accent="amber"></div>
+              <div class="knob-slot" data-param="envSustain" data-label="SUS" data-accent="amber"></div>
+              <div class="knob-slot" data-param="envRelease" data-label="REL" data-accent="amber"></div>
+              <div class="knob-slot" data-param="masterGainDb" data-label="GAIN" data-accent="emerald"></div>
+              <div class="knob-slot" data-param="limiterThreshDb" data-label="LIM" data-accent="emerald"></div>
+              <div class="select-slot"><button class="toggle-btn emerald" data-param-toggle="limiterEnable">LIMIT</button></div>
+            </div>
+          </div>
+
+          <!-- Bottom Center: Articulator & Arp -->
+          <div class="module-card accent-cyan bottom-center">
+            <div class="card-header">
+              <div class="card-actions">
+                <button class="mini-btn active" id="modeShaperBtn">SHAPER ARTICULATOR</button>
+                <button class="mini-btn" id="modeArpBtn">ARP / STEP SEQ</button>
+              </div>
+              <div class="card-actions" id="shaperControlsBar">
+                <button class="mini-btn art-target active" data-target="0">VOL</button>
+                <button class="mini-btn art-target" data-target="1">PITCH</button>
+                <button class="mini-btn art-target" data-target="2">FILT1</button>
+                <button class="mini-btn art-target" data-target="3">CUST</button>
+                <button class="mini-btn art-target" data-target="4">TMBR</button>
+                <button class="mini-btn art-target" data-target="5">PRSM</button>
+                <select id="artPresetSelect" class="mini-select cyan">
+                  <option value="-1">Default Curve</option>
+                  <option value="-2">Flat</option>
+                  <option value="0">Sidechain Pump</option>
+                  <option value="1">Trance Gate</option>
+                  <option value="2">Stutter Chop</option>
+                  <option value="3">Saw Ramp</option>
+                  <option value="4">Triplet Groove</option>
+                  <option value="5">Sine LFO</option>
+                  <option value="6">Snappy Pluck</option>
+                  <option value="7">Cyber Swell</option>
+                </select>
+                <button class="mini-btn" id="artSyncBtn">SYNC</button>
+              </div>
+              <div class="card-actions" id="arpControlsBar" style="display:none;">
+                <button class="toggle-btn cyan" data-param-toggle="arpEnable">ARP ON</button>
+                <select data-param-select="arpMode" class="mini-select cyan"></select>
+                <select data-param-select="arpRate" class="mini-select amber"></select>
+                <select id="arpPatternSelect" class="mini-select emerald">
+                  <option value="0">Pattern: Standard</option>
+                  <option value="1">Pattern: Cyber Octaves</option>
+                  <option value="2">Pattern: Driving Bass</option>
+                  <option value="3">Pattern: Acid 303</option>
+                  <option value="4">Pattern: Trance Pluck</option>
+                </select>
+              </div>
+            </div>
+            <div class="bottom-center-body">
+              <canvas id="articulatorCanvas"></canvas>
+              <div id="arpGridContainer" class="arp-grid" style="display:none;"></div>
+            </div>
+          </div>
+
+          <!-- Bottom Right: Audition MIDI Keyboard -->
+          <div class="module-card accent-cyan bottom-right">
+            <div class="card-header">
+              <span class="card-title">AUDITION KEYBOARD</span>
+              <span class="hint-text">Click / Drag Notes</span>
+            </div>
+            <div class="piano-keys" id="pianoKeys"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 1: FX RACK [13] -->
+      <section class="tab-view" id="tab-1">
+        <div class="fx-chain-strip">
+          <span class="fx-strip-label">SIGNAL CHAIN:</span>
+          <div class="fx-pills" id="fxChainPills"></div>
+          <div class="fx-chain-actions">
+            <select id="fxAddSelect" class="mini-select emerald"></select>
+            <button class="pill-btn emerald" id="fxAddBtn">+ ADD</button>
+            <button class="pill-btn amber" id="fxResetBtn">RESET</button>
+          </div>
+        </div>
+        <div class="fx-grid" id="fxCardsGrid"></div>
+      </section>
+
+      <!-- TAB 2: TIME MODULATION -->
+      <section class="tab-view" id="tab-2">
+        <div class="timemod-layout">
+          <div class="module-card accent-amber timemod-canvas-card">
+            <div class="card-header">
+              <span class="card-title">TIME MODULATION CURVE // BUFFER WARP &amp; SCRATCH</span>
+              <div class="card-actions" id="timeModPresetBtns">
+                <button class="mini-btn" data-tm-preset="0">HALF-TIME</button>
+                <button class="mini-btn" data-tm-preset="1">1/8 STUTTER</button>
+                <button class="mini-btn" data-tm-preset="2">TAPE STOP</button>
+                <button class="mini-btn" data-tm-preset="3">REVERSE</button>
+                <button class="mini-btn" data-tm-preset="4">DJ SCRATCH</button>
+                <button class="mini-btn" data-tm-preset="5">TRIPLET</button>
+                <button class="mini-btn" data-tm-preset="6">VINYL DROP</button>
+                <button class="mini-btn" data-tm-preset="7">CHAOS</button>
+              </div>
+            </div>
+            <canvas id="timeModCanvas"></canvas>
+          </div>
+
+          <div class="module-card accent-amber timemod-params-card">
+            <div class="card-header">
+              <span class="card-title">TIME ENGINE PARAMETERS</span>
+              <button class="toggle-btn amber" data-param-toggle="timeModEnable">TIME MOD ON</button>
+            </div>
+            <div class="knob-grid cols-2">
+              <div class="select-slot"><label>MODE</label><select data-param-select="timeModMode" class="mini-select amber"></select></div>
+              <div class="select-slot"><label>RATE</label><select data-param-select="timeModRate" class="mini-select amber"></select></div>
+              <div class="knob-slot" data-param="timeModDepth" data-label="DEPTH" data-accent="amber"></div>
+              <div class="knob-slot" data-param="timeModStutter" data-label="STUTT" data-accent="amber"></div>
+              <div class="knob-slot" data-param="timeModSpeed" data-label="SPEED" data-accent="magenta"></div>
+              <div class="knob-slot" data-param="timeModSmooth" data-label="SMOOT" data-accent="cyan"></div>
+              <div class="knob-slot" data-param="timeModFilter" data-label="FILTR" data-accent="magenta"></div>
+              <div class="knob-slot" data-param="timeModMix" data-label="MIX" data-accent="emerald"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: PRESET BROWSER -->
+      <section class="tab-view" id="tab-3">
+        <div class="preset-browser-bar">
+          <input type="text" id="presetSearchInput" class="search-input" placeholder="Search 332 presets by name, wave, FX, category..." />
+          <div class="category-pills" id="presetCatPills"></div>
+          <div class="save-preset-cluster">
+            <input type="text" id="savePresetName" class="search-input short" placeholder="User preset name..." />
+            <button class="pill-btn emerald" id="savePresetBtn">SAVE PRESET</button>
+          </div>
+        </div>
+        <div class="preset-table-wrap">
+          <div class="preset-grid" id="presetBrowserGrid"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

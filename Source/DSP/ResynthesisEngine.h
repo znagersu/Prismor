@@ -3,6 +3,7 @@
 #include <array>
 #include <cmath>
 #include <atomic>
+#include <memory>
 
 namespace PrismorDSP
 {
@@ -27,6 +28,7 @@ public:
     };
 
     ResynthesisEngine()
+        : planes(std::make_unique<std::array<PlaneData, 2>>())
     {
         formatManager.registerBasicFormats();
         resetPartTableToWaveform(0, 0); // Part A: Clean Sawtooth
@@ -56,16 +58,20 @@ public:
     int getActiveWaveType(int partIndex) const noexcept
     {
         const size_t pIdx = static_cast<size_t>(juce::jlimit(0, 1, partIndex));
-        return activeWaveType[pIdx];
+        return activeWaveType[pIdx].load(std::memory_order_acquire);
     }
 
     void resetPartTableToWaveform(int partIndex, int waveType)
     {
         const size_t pIdx = static_cast<size_t>(juce::jlimit(0, 1, partIndex));
         juce::ScopedLock sl(metaLock);
-        activeWaveType[pIdx] = juce::jlimit(0, 9, waveType);
-        auto& tbl = partTables[pIdx];
-        juce::Random rng(1337 + partIndex * 99 + waveType * 17);
+        const int clampedWave = juce::jlimit(0, 9, waveType);
+        activeWaveType[pIdx].store(clampedWave, std::memory_order_release);
+        const int curIdx = activePartTableIndex.load(std::memory_order_relaxed);
+        const int writeIdx = 1 - curIdx;
+        partTablesBuf[static_cast<size_t>(writeIdx)] = partTablesBuf[static_cast<size_t>(curIdx)];
+        auto& tbl = partTablesBuf[static_cast<size_t>(writeIdx)][pIdx];
+        juce::Random rng(1337 + partIndex * 99 + clampedWave * 17);
 
         for (int k = 0; k < MAX_PARTIALS; ++k)
         {
@@ -73,7 +79,7 @@ public:
             float g = 0.0f;
             float ph = 0.0f;
 
-            switch (waveType)
+            switch (clampedWave)
             {
                 case 0: // Clean Calibrated Sawtooth (1/h)
                     g = 1.0f / h;
@@ -154,6 +160,7 @@ public:
             tbl.harmonicGain[static_cast<size_t>(k)] = juce::jlimit(0.0f, 1.0f, g);
             tbl.harmonicPhase[static_cast<size_t>(k)] = juce::jlimit(0.0f, 1.0f, ph);
         }
+        activePartTableIndex.store(writeIdx, std::memory_order_release);
     }
 
     void setHarmonicBar(int partIndex, int partialIndex, float normalizedBarValue)
@@ -162,9 +169,12 @@ public:
             return;
         const size_t pIdx = static_cast<size_t>(juce::jlimit(0, 1, partIndex));
         juce::ScopedLock sl(metaLock);
-        // Convert perceptual UI bar height [0..1] into partial amplitude
+        const int curIdx = activePartTableIndex.load(std::memory_order_relaxed);
+        const int writeIdx = 1 - curIdx;
+        partTablesBuf[static_cast<size_t>(writeIdx)] = partTablesBuf[static_cast<size_t>(curIdx)];
         const float val = juce::jlimit(0.0f, 1.0f, normalizedBarValue);
-        partTables[pIdx].harmonicGain[static_cast<size_t>(partialIndex)] = val * val;
+        partTablesBuf[static_cast<size_t>(writeIdx)][pIdx].harmonicGain[static_cast<size_t>(partialIndex)] = val * val;
+        activePartTableIndex.store(writeIdx, std::memory_order_release);
     }
 
     void setHarmonicPhaseBar(int partIndex, int partialIndex, float normalizedPhase)
@@ -173,7 +183,11 @@ public:
             return;
         const size_t pIdx = static_cast<size_t>(juce::jlimit(0, 1, partIndex));
         juce::ScopedLock sl(metaLock);
-        partTables[pIdx].harmonicPhase[static_cast<size_t>(partialIndex)] = juce::jlimit(0.0f, 1.0f, normalizedPhase);
+        const int curIdx = activePartTableIndex.load(std::memory_order_relaxed);
+        const int writeIdx = 1 - curIdx;
+        partTablesBuf[static_cast<size_t>(writeIdx)] = partTablesBuf[static_cast<size_t>(curIdx)];
+        partTablesBuf[static_cast<size_t>(writeIdx)][pIdx].harmonicPhase[static_cast<size_t>(partialIndex)] = juce::jlimit(0.0f, 1.0f, normalizedPhase);
+        activePartTableIndex.store(writeIdx, std::memory_order_release);
     }
 
     float getHarmonicBarUI(int partIndex, int partialIndex) const noexcept
@@ -181,7 +195,8 @@ public:
         if (partialIndex < 0 || partialIndex >= MAX_PARTIALS)
             return 0.0f;
         const size_t pIdx = static_cast<size_t>(juce::jlimit(0, 1, partIndex));
-        const float raw = partTables[pIdx].harmonicGain[static_cast<size_t>(partialIndex)];
+        const int readIdx = activePartTableIndex.load(std::memory_order_acquire);
+        const float raw = partTablesBuf[static_cast<size_t>(readIdx)][pIdx].harmonicGain[static_cast<size_t>(partialIndex)];
         return std::sqrt(juce::jlimit(0.0f, 1.0f, raw));
     }
 
@@ -190,7 +205,8 @@ public:
         if (partialIndex < 0 || partialIndex >= MAX_PARTIALS)
             return 0.0f;
         const size_t pIdx = static_cast<size_t>(juce::jlimit(0, 1, partIndex));
-        return partTables[pIdx].harmonicGain[static_cast<size_t>(partialIndex)];
+        const int readIdx = activePartTableIndex.load(std::memory_order_acquire);
+        return partTablesBuf[static_cast<size_t>(readIdx)][pIdx].harmonicGain[static_cast<size_t>(partialIndex)];
     }
 
     float getHarmonicPhaseRaw(int partIndex, int partialIndex) const noexcept
@@ -198,7 +214,8 @@ public:
         if (partialIndex < 0 || partialIndex >= MAX_PARTIALS)
             return 0.0f;
         const size_t pIdx = static_cast<size_t>(juce::jlimit(0, 1, partIndex));
-        return partTables[pIdx].harmonicPhase[static_cast<size_t>(partialIndex)];
+        const int readIdx = activePartTableIndex.load(std::memory_order_acquire);
+        return partTablesBuf[static_cast<size_t>(readIdx)][pIdx].harmonicPhase[static_cast<size_t>(partialIndex)];
     }
 
     void copyPartTable(int fromPart, int toPart)
@@ -208,7 +225,12 @@ public:
         if (src == dst)
             return;
         juce::ScopedLock sl(metaLock);
-        partTables[dst] = partTables[src];
+        const int curIdx = activePartTableIndex.load(std::memory_order_relaxed);
+        const int writeIdx = 1 - curIdx;
+        partTablesBuf[static_cast<size_t>(writeIdx)] = partTablesBuf[static_cast<size_t>(curIdx)];
+        partTablesBuf[static_cast<size_t>(writeIdx)][dst] = partTablesBuf[static_cast<size_t>(writeIdx)][src];
+        activeWaveType[dst].store(activeWaveType[src].load(std::memory_order_acquire), std::memory_order_release);
+        activePartTableIndex.store(writeIdx, std::memory_order_release);
     }
 
     // Odd/Even harmonic emphasis: oddMult scales odd harmonics (k=0,2,4...), evenMult scales even harmonics (k=1,3,5...)
@@ -216,13 +238,17 @@ public:
     {
         const size_t pIdx = static_cast<size_t>(juce::jlimit(0, 1, partIndex));
         juce::ScopedLock sl(metaLock);
-        auto& tbl = partTables[pIdx];
+        const int curIdx = activePartTableIndex.load(std::memory_order_relaxed);
+        const int writeIdx = 1 - curIdx;
+        partTablesBuf[static_cast<size_t>(writeIdx)] = partTablesBuf[static_cast<size_t>(curIdx)];
+        auto& tbl = partTablesBuf[static_cast<size_t>(writeIdx)][pIdx];
         for (int k = 0; k < MAX_PARTIALS; ++k)
         {
             const bool isOddHarmonic = (k % 2 == 0); // k=0 is 1st harmonic (odd)
             const float mult = isOddHarmonic ? oddMult : evenMult;
             tbl.harmonicGain[static_cast<size_t>(k)] = juce::jlimit(0.0f, 1.0f, tbl.harmonicGain[static_cast<size_t>(k)] * mult);
         }
+        activePartTableIndex.store(writeIdx, std::memory_order_release);
     }
 
     // Per-partial phase randomization or alignment
@@ -230,12 +256,16 @@ public:
     {
         const size_t pIdx = static_cast<size_t>(juce::jlimit(0, 1, partIndex));
         juce::ScopedLock sl(metaLock);
-        auto& tbl = partTables[pIdx];
+        const int curIdx = activePartTableIndex.load(std::memory_order_relaxed);
+        const int writeIdx = 1 - curIdx;
+        partTablesBuf[static_cast<size_t>(writeIdx)] = partTablesBuf[static_cast<size_t>(curIdx)];
+        auto& tbl = partTablesBuf[static_cast<size_t>(writeIdx)][pIdx];
         juce::Random rng;
         for (int k = 0; k < MAX_PARTIALS; ++k)
         {
             tbl.harmonicPhase[static_cast<size_t>(k)] = clearToZero ? 0.0f : rng.nextFloat();
         }
+        activePartTableIndex.store(writeIdx, std::memory_order_release);
     }
 
     // Spectral filtering directly on the harmonic distribution table (0=LPF, 1=HPF, 2=Smooth)
@@ -243,7 +273,10 @@ public:
     {
         const size_t pIdx = static_cast<size_t>(juce::jlimit(0, 1, partIndex));
         juce::ScopedLock sl(metaLock);
-        auto& tbl = partTables[pIdx];
+        const int curIdx = activePartTableIndex.load(std::memory_order_relaxed);
+        const int writeIdx = 1 - curIdx;
+        partTablesBuf[static_cast<size_t>(writeIdx)] = partTablesBuf[static_cast<size_t>(curIdx)];
+        auto& tbl = partTablesBuf[static_cast<size_t>(writeIdx)][pIdx];
 
         if (filterMode == 0) // Spectral Low-Pass Rolloff
         {
@@ -274,6 +307,7 @@ public:
                     0.25f * copy[static_cast<size_t>(k + 1)];
             }
         }
+        activePartTableIndex.store(writeIdx, std::memory_order_release);
     }
 
     // Harmonic Shift (deltaBins = -1 or +1) & Harmonic Stretch (expands partial spacing)
@@ -281,7 +315,10 @@ public:
     {
         const size_t pIdx = static_cast<size_t>(juce::jlimit(0, 1, partIndex));
         juce::ScopedLock sl(metaLock);
-        auto& tbl = partTables[pIdx];
+        const int curIdx = activePartTableIndex.load(std::memory_order_relaxed);
+        const int writeIdx = 1 - curIdx;
+        partTablesBuf[static_cast<size_t>(writeIdx)] = partTablesBuf[static_cast<size_t>(curIdx)];
+        auto& tbl = partTablesBuf[static_cast<size_t>(writeIdx)][pIdx];
         const auto oldGain  = tbl.harmonicGain;
         const auto oldPhase = tbl.harmonicPhase;
 
@@ -313,12 +350,13 @@ public:
                 }
             }
         }
+        activePartTableIndex.store(writeIdx, std::memory_order_release);
     }
 
     void generateProceduralPlane(int presetType)
     {
         const int writeIdx = 1 - activePlaneIndex.load(std::memory_order_relaxed);
-        auto& plane = planes[static_cast<size_t>(writeIdx)];
+        auto& plane = (*planes)[static_cast<size_t>(writeIdx)];
 
         juce::Image preview(juce::Image::ARGB, TIME_FRAMES, MAX_PARTIALS, true);
 
@@ -412,7 +450,7 @@ public:
     void loadFromImage(const juce::Image& img, const juce::String& name)
     {
         const int writeIdx = 1 - activePlaneIndex.load(std::memory_order_relaxed);
-        auto& plane = planes[static_cast<size_t>(writeIdx)];
+        auto& plane = (*planes)[static_cast<size_t>(writeIdx)];
 
         juce::Image scaled = img.rescaled(TIME_FRAMES, MAX_PARTIALS, juce::Graphics::mediumResamplingQuality);
         juce::Image preview(juce::Image::ARGB, TIME_FRAMES, MAX_PARTIALS, true);
@@ -489,7 +527,7 @@ public:
         }
 
         const int writeIdx = 1 - activePlaneIndex.load(std::memory_order_relaxed);
-        auto& plane = planes[static_cast<size_t>(writeIdx)];
+        auto& plane = (*planes)[static_cast<size_t>(writeIdx)];
         juce::Image preview(juce::Image::ARGB, TIME_FRAMES, MAX_PARTIALS, true);
 
         const int windowSize = 512;
@@ -564,7 +602,7 @@ public:
         }
 
         const int readIdx = activePlaneIndex.load(std::memory_order_acquire);
-        const auto& plane = planes[static_cast<size_t>(readIdx)];
+        const auto& plane = (*planes)[static_cast<size_t>(readIdx)];
 
         const float wrappedT = normalizedTime - std::floor(normalizedTime);
         const float scaledT = juce::jlimit(0.0f, 1.0f, wrappedT) * static_cast<float>(TIME_FRAMES - 1);
@@ -597,9 +635,10 @@ public:
 
 private:
     juce::AudioFormatManager formatManager;
-    std::array<PlaneData, 2> planes;
-    std::array<EditablePartTable, 2> partTables;
-    std::array<int, 2> activeWaveType { 0, 1 };
+    std::unique_ptr<std::array<PlaneData, 2>> planes;
+    std::array<std::array<EditablePartTable, 2>, 2> partTablesBuf {};
+    std::atomic<int> activePartTableIndex { 0 };
+    std::array<std::atomic<int>, 2> activeWaveType { 0, 1 };
     std::atomic<int> activePlaneIndex { 0 };
 
     mutable juce::CriticalSection metaLock;
