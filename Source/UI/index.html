@@ -182,9 +182,9 @@
               </div>
             </div>
 
-            <!-- Card 05 & 06: Dual Spectral Filter + Noise -->
-            <div class="module-row filter-noise-row">
-              <div class="module-card accent-amber flex-3">
+            <!-- Card 05: Dual Spectral Filter -->
+            <div class="module-row filter-row">
+              <div class="module-card accent-amber">
                 <div class="card-header">
                   <span class="card-title">05 // DUAL FILTER &amp; 4x DRIVE</span>
                   <div class="card-actions">
@@ -212,30 +212,12 @@
                   </div>
                 </div>
               </div>
-
-              <div class="module-card accent-emerald flex-2">
-                <div class="card-header">
-                  <span class="card-title">06 // NOISE ENGINE</span>
-                  <div class="card-actions">
-                    <button class="toggle-btn emerald" data-param-toggle="noiseEnable">ON</button>
-                  </div>
-                </div>
-                <div class="knob-grid cols-4">
-                  <div class="select-slot col-span-2"><label>TYPE</label><select data-param-select="noiseType" class="mini-select emerald"></select></div>
-                  <div class="knob-slot" data-param="noiseLevel" data-label="LEVEL" data-accent="emerald"></div>
-                  <div class="knob-slot" data-param="noisePitch" data-label="PITCH" data-accent="emerald"></div>
-                  <div class="knob-slot" data-param="noiseKeyTrack" data-label="KEY" data-accent="emerald"></div>
-                  <div class="knob-slot" data-param="noisePhase" data-label="STEREO" data-accent="cyan"></div>
-                  <div class="knob-slot" data-param="noisePan" data-label="PAN" data-accent="cyan"></div>
-                  <div class="knob-slot" data-param="noiseFilter" data-label="LP/HP" data-accent="amber"></div>
-                </div>
-              </div>
             </div>
           </div>
 
-          <!-- Right Column: Live Spectral Display / Harmonic Editor -->
+          <!-- Right Column: Top Half Spectrum / Bottom Half Noise Engine -->
           <div class="synth-col col-vis">
-            <div class="module-card accent-cyan full-height">
+            <div class="module-card accent-cyan vis-spectrum-card">
               <div class="card-header">
                 <span class="card-title" id="visCardTitle">LIVE HARMONIC SPECTRUM</span>
                 <div class="card-actions" id="harmEditTools" style="display:none;">
@@ -248,6 +230,24 @@
                 </div>
               </div>
               <canvas id="spectrumCanvas"></canvas>
+            </div>
+
+            <div class="module-card accent-emerald vis-noise-card">
+              <div class="card-header">
+                <span class="card-title">06 // NOISE ENGINE</span>
+                <div class="card-actions">
+                  <button class="toggle-btn emerald" data-param-toggle="noiseEnable">ON</button>
+                </div>
+              </div>
+              <div class="knob-grid cols-4">
+                <div class="select-slot col-span-2"><label>TYPE</label><select data-param-select="noiseType" class="mini-select emerald"></select></div>
+                <div class="knob-slot" data-param="noiseLevel" data-label="LEVEL" data-accent="emerald"></div>
+                <div class="knob-slot" data-param="noisePitch" data-label="PITCH" data-accent="emerald"></div>
+                <div class="knob-slot" data-param="noiseKeyTrack" data-label="KEY" data-accent="emerald"></div>
+                <div class="knob-slot" data-param="noisePhase" data-label="STEREO" data-accent="cyan"></div>
+                <div class="knob-slot" data-param="noisePan" data-label="PAN" data-accent="cyan"></div>
+                <div class="knob-slot" data-param="noiseFilter" data-label="LP/HP" data-accent="amber"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -281,6 +281,7 @@
                   <option value="7">Cyber Swell</option>
                 </select>
                 <button class="mini-btn" id="artSyncBtn">SYNC</button>
+                <span class="hint-text shaper-hint">2x R-Click: Add &bull; R-Click: Del</span>
               </div>
               <div class="card-actions" id="arpControlsBar" style="display:none;">
                 <button class="toggle-btn cyan" data-param-toggle="arpEnable">ARP ON</button>

@@ -172,7 +172,7 @@ html, body {
 /* Synth Tab Layout */
 .synth-top-grid {
   display: grid;
-  grid-template-columns: 410px minmax(0, 1fr) 260px;
+  grid-template-columns: 412px minmax(0, 1fr) 380px;
   gap: 6px;
   flex: 1;
   min-height: 0;
@@ -180,18 +180,22 @@ html, body {
 .synth-col { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
 .col-fields > .module-card { flex: 1; justify-content: space-between; }
 .module-row { display: flex; gap: 6px; flex: 1; min-height: 0; }
-.module-row.two-col { flex: 1.15; }
+.module-row.two-col { flex: 1.25; }
 .two-col > .module-card { flex: 1; }
+.module-row.filter-row { flex: 1.0; }
+.module-row.filter-row > .module-card { flex: 1; }
+.vis-spectrum-card { flex: 1.25; }
+.vis-noise-card { flex: 1.0; }
 .flex-3 { flex: 1.55; }
 .flex-2 { flex: 1.0; }
 .filter-subrows { display: flex; flex-direction: column; gap: 6px; justify-content: space-around; flex: 1; }
 
 .knob-grid { display: grid; gap: 4px; align-items: center; flex: 1; }
 .cols-6 { grid-template-columns: repeat(6, 1fr); }
-.cols-6-select { grid-template-columns: repeat(5, 1fr) 76px; }
-.prism-knob-grid { grid-template-columns: 1fr 90px 1fr 1fr; }
-.voice-knob-grid { grid-template-columns: 96px 1fr 1fr 1fr; }
-.filter-knob-grid { display: grid; grid-template-columns: 96px repeat(5, 1fr); gap: 4px; align-items: center; }
+.cols-6-select { grid-template-columns: repeat(5, 1fr) 82px; }
+.prism-knob-grid { grid-template-columns: 1fr 86px 1fr 1fr; }
+.voice-knob-grid { grid-template-columns: 90px 1fr 1fr 1fr; }
+.filter-knob-grid { display: grid; grid-template-columns: 118px repeat(5, 1fr); gap: 4px; align-items: center; }
 .cols-5 { grid-template-columns: repeat(5, 1fr); }
 .cols-4 { grid-template-columns: repeat(4, 1fr); }
 .cols-3 { grid-template-columns: repeat(3, 1fr); }
@@ -231,9 +235,10 @@ html, body {
   height: 156px;
   flex-shrink: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(0, 1fr) 380px;
   gap: 6px;
 }
+.shaper-hint { margin-left: 2px; font-size: 8.5px; opacity: 0.78; }
 .bottom-center-body { flex: 1; min-height: 0; display: flex; }
 
 /* Arpeggiator Grid */

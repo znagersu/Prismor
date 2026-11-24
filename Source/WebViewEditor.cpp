@@ -51,9 +51,9 @@ WebViewEditor::WebViewEditor(PrismorAudioProcessor& p)
       m_processor(p),
       m_webView(makeBrowserOptions([this](const juce::String& url) { return getResource(url); }))
 {
-    setSize(1400, 860);
+    setSize(1440, 860);
     setResizable(true, false);
-    setResizeLimits(1180, 760, 1920, 1180);
+    setResizeLimits(1200, 760, 1920, 1180);
 
     m_webView.onNavigate = [this](const juce::String& url) { return handleJSAction(url); };
 

@@ -625,6 +625,42 @@
     window.addEventListener("pointerup", () => { if (activeKeyNote >= 0) triggerNote(-1, false); });
   }
 
+  function hexToRgba(hex, alpha) {
+    const clean = (hex || "#22d3ee").replace("#", "");
+    if (clean.length !== 6) return `rgba(34,211,238,${alpha})`;
+    const r = parseInt(clean.slice(0, 2), 16);
+    const g = parseInt(clean.slice(2, 4), 16);
+    const b = parseInt(clean.slice(4, 6), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+
+  function evalSegmentT(t, tension = 0, shapeMode = 0) {
+    t = Math.max(0, Math.min(1, t));
+    if (shapeMode === 2) return t; // Linear
+    if (shapeMode === 1) {
+      const cosineS = 0.5 - 0.5 * Math.cos(t * Math.PI);
+      if (Math.abs(tension) < 0.01) return cosineS;
+      const centered = (t - 0.5) * 2;
+      if (tension > 0) {
+        const k = 1 + tension * 10;
+        return 0.5 + 0.5 * (Math.tanh(centered * k) / Math.tanh(k));
+      }
+      const amt = -tension;
+      const raw = 0.5 + 0.5 * (centered * centered * centered);
+      return cosineS * (1 - amt) + raw * amt;
+    }
+    if (Math.abs(tension) < 0.001) return t;
+    const k = tension * 4.8;
+    const denom = Math.exp(k) - 1;
+    if (Math.abs(denom) < 1e-5) return t;
+    return (Math.exp(k * t) - 1) / denom;
+  }
+
+  function drawAllSplines() {
+    drawSplineCanvas("articulatorCanvas", articulators[activeArtTarget], ACCENT_HEX.cyan, latestTelemetry ? latestTelemetry.envCursor : -1);
+    drawSplineCanvas("timeModCanvas", timeModCurve, ACCENT_HEX.amber, latestTelemetry ? latestTelemetry.tmCursor : -1, latestTelemetry ? latestTelemetry.tmWave : null);
+  }
+
   function drawSplineCanvas(canvasId, curveData, accentColor, cursorNorm, wavePreview) {
     const cvs = document.getElementById(canvasId);
     if (!cvs) return;
@@ -640,12 +676,18 @@
     const W = rect.width, H = rect.height;
     ctx.clearRect(0, 0, W, H);
 
+    const padX = 6, padY = 8;
+    const uW = Math.max(10, W - padX * 2);
+    const uH = Math.max(10, H - padY * 2);
+    const toPxX = (nx) => padX + nx * uW;
+    const toPxY = (ny) => padY + (1 - ny) * uH;
+
     // Subtle grid
     ctx.strokeStyle = "rgba(255,255,255,0.05)";
     ctx.lineWidth = 1;
     for (let g = 1; g < 4; g++) {
-      ctx.beginPath(); ctx.moveTo((W * g) / 4, 0); ctx.lineTo((W * g) / 4, H); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(0, (H * g) / 4); ctx.lineTo(W, (H * g) / 4); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(padX + (uW * g) / 4, padY); ctx.lineTo(padX + (uW * g) / 4, padY + uH); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(padX, padY + (uH * g) / 4); ctx.lineTo(padX + uW, padY + (uH * g) / 4); ctx.stroke();
     }
 
     // Optional live waveform preview
@@ -653,8 +695,8 @@
       ctx.strokeStyle = "rgba(34,211,238,0.22)";
       ctx.beginPath();
       wavePreview.forEach((v, i) => {
-        const px = (i / (wavePreview.length - 1)) * W;
-        const py = H * 0.5 - v * (H * 0.38);
+        const px = padX + (i / (wavePreview.length - 1)) * uW;
+        const py = padY + uH * 0.5 - v * (uH * 0.38);
         if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
       });
       ctx.stroke();
@@ -662,66 +704,146 @@
 
     if (curveData && Array.isArray(curveData.nodes) && curveData.nodes.length >= 2) {
       const nodes = curveData.nodes;
+      const pts = [];
+      for (let i = 0; i + 1 < nodes.length; i++) {
+        const n0 = nodes[i], n1 = nodes[i + 1];
+        const steps = 16;
+        for (let s = 0; s < steps; s++) {
+          const lt = s / steps;
+          const shaped = evalSegmentT(lt, n0.tension || 0, n0.shapeMode || 0);
+          pts.push({
+            x: toPxX(n0.x + lt * (n1.x - n0.x)),
+            y: toPxY(n0.y + shaped * (n1.y - n0.y))
+          });
+        }
+      }
+      pts.push({ x: toPxX(nodes[nodes.length - 1].x), y: toPxY(nodes[nodes.length - 1].y) });
+
+      // Translucent vertical fill under curve
+      const grad = ctx.createLinearGradient(0, padY, 0, padY + uH);
+      grad.addColorStop(0, hexToRgba(accentColor, 0.18));
+      grad.addColorStop(1, hexToRgba(accentColor, 0.01));
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      pts.forEach((p, idx) => { if (idx === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
+      ctx.lineTo(pts[pts.length - 1].x, padY + uH);
+      ctx.lineTo(pts[0].x, padY + uH);
+      ctx.closePath();
+      ctx.fill();
+
+      // Main curve stroke
       ctx.strokeStyle = accentColor;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      nodes.forEach((n, idx) => {
-        const px = n.x * W;
-        const py = (1 - n.y) * H;
-        if (idx === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-      });
+      pts.forEach((p, idx) => { if (idx === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
       ctx.stroke();
 
+      // Control dots
       nodes.forEach((n) => {
         ctx.fillStyle = "#0b0d14";
         ctx.strokeStyle = accentColor;
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(n.x * W, (1 - n.y) * H, 4.5, 0, Math.PI * 2);
+        ctx.arc(toPxX(n.x), toPxY(n.y), 4.5, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
       });
     }
 
     if (cursorNorm !== undefined && cursorNorm >= 0) {
-      const cx = cursorNorm * W;
+      const cx = toPxX(Math.max(0, Math.min(1, cursorNorm)));
       ctx.strokeStyle = "rgba(255,255,255,0.55)";
       ctx.lineWidth = 1.2;
-      ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, H); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx, padY); ctx.lineTo(cx, padY + uH); ctx.stroke();
     }
   }
 
   function setupSplineInteraction(canvasId, getCurve, onUpdate, onAdd, onRemove) {
     const cvs = document.getElementById(canvasId);
+    const padX = 6, padY = 8;
     let dragIdx = -1;
+    let lastRightTime = 0, lastRightX = 0, lastRightY = 0;
+
+    const toNorm = (clientX, clientY, r) => {
+      const uW = Math.max(1, r.width - padX * 2);
+      const uH = Math.max(1, r.height - padY * 2);
+      return {
+        nx: Math.max(0, Math.min(1, (clientX - r.left - padX) / uW)),
+        ny: Math.max(0, Math.min(1, 1 - (clientY - r.top - padY) / uH))
+      };
+    };
+
+    const findHitNode = (curve, clientX, clientY, r) => {
+      const uW = Math.max(1, r.width - padX * 2);
+      const uH = Math.max(1, r.height - padY * 2);
+      const px = clientX - r.left;
+      const py = clientY - r.top;
+      let hit = -1, bestPx = 11.5;
+      curve.nodes.forEach((n, idx) => {
+        const vx = padX + n.x * uW;
+        const vy = padY + (1 - n.y) * uH;
+        const d = Math.hypot(vx - px, vy - py);
+        if (d < bestPx) { bestPx = d; hit = idx; }
+      });
+      return hit;
+    };
+
+    const addNodeOptimistic = (curve, nx, ny) => {
+      const clampedX = Math.max(0.015, Math.min(0.985, nx));
+      const clampedY = Math.max(0, Math.min(1, ny));
+      curve.nodes.push({ x: clampedX, y: clampedY, tension: 0, shapeMode: curve.globalShapeMode || 0 });
+      curve.nodes.sort((a, b) => a.x - b.x);
+      drawAllSplines();
+      onAdd(clampedX, clampedY);
+    };
+
     cvs.addEventListener("pointerdown", (e) => {
       const curve = getCurve();
       if (!curve || !curve.nodes) return;
       const r = cvs.getBoundingClientRect();
-      const nx = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
-      const ny = Math.max(0, Math.min(1, 1 - (e.clientY - r.top) / r.height));
+      const { nx, ny } = toNorm(e.clientX, e.clientY, r);
+      const hit = findHitNode(curve, e.clientX, e.clientY, r);
 
-      let hit = -1, bestD = 0.045;
-      curve.nodes.forEach((n, idx) => {
-        const d = Math.hypot(n.x - nx, n.y - ny);
-        if (d < bestD) { bestD = d; hit = idx; }
-      });
-
-      if (e.button === 2 && hit > 0 && hit < curve.nodes.length - 1) {
-        onRemove(hit);
+      if (e.button === 2) {
+        e.preventDefault();
+        if (hit > 0 && hit < curve.nodes.length - 1) {
+          curve.nodes.splice(hit, 1);
+          drawAllSplines();
+          onRemove(hit);
+          lastRightTime = 0;
+          return;
+        }
+        if (hit < 0) {
+          const now = performance.now();
+          if (now - lastRightTime <= 420 && Math.hypot(e.clientX - lastRightX, e.clientY - lastRightY) <= 20) {
+            lastRightTime = 0;
+            addNodeOptimistic(curve, nx, ny);
+          } else {
+            lastRightTime = now;
+            lastRightX = e.clientX;
+            lastRightY = e.clientY;
+          }
+        }
         return;
       }
-      if (hit >= 0) {
+
+      if (e.button === 0 && hit >= 0) {
         dragIdx = hit;
-      } else if (e.detail >= 2) {
-        onAdd(nx, ny);
-        return;
-      }
-      if (dragIdx >= 0) {
         cvs.setPointerCapture(e.pointerId);
         const onMove = (ev) => {
-          const mx = Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width));
-          const my = Math.max(0, Math.min(1, 1 - (ev.clientY - r.top) / r.height));
+          const { nx: mx, ny: my } = toNorm(ev.clientX, ev.clientY, r);
+          const n = curve.nodes[dragIdx];
+          if (n) {
+            if (dragIdx === 0) n.x = 0;
+            else if (dragIdx === curve.nodes.length - 1) n.x = 1;
+            else {
+              const minX = curve.nodes[dragIdx - 1].x + 0.01;
+              const maxX = curve.nodes[dragIdx + 1].x - 0.01;
+              n.x = Math.max(minX, Math.min(maxX, mx));
+            }
+            n.y = my;
+            drawAllSplines();
+          }
           onUpdate(dragIdx, mx, my);
         };
         const onUp = () => {
@@ -733,6 +855,17 @@
         window.addEventListener("pointerup", onUp);
       }
     });
+
+    cvs.addEventListener("dblclick", (e) => {
+      if (e.button !== 0) return;
+      const curve = getCurve();
+      if (!curve || !curve.nodes) return;
+      const r = cvs.getBoundingClientRect();
+      if (findHitNode(curve, e.clientX, e.clientY, r) >= 0) return;
+      const { nx, ny } = toNorm(e.clientX, e.clientY, r);
+      addNodeOptimistic(curve, nx, ny);
+    });
+
     cvs.addEventListener("contextmenu", e => e.preventDefault());
   }
 
@@ -751,20 +884,20 @@
     const W = rect.width, H = rect.height;
     ctx.clearRect(0, 0, W, H);
 
-    const padX = 6;
-    const padTop = 6;
-    const padBottom = 15;
+    const padX = 8;
+    const padTop = 8;
+    const padBottom = 16;
     const usableW = Math.max(10, W - padX * 2);
     const usableH = Math.max(10, H - padTop - padBottom);
     const baseY = H - padBottom;
 
+    // Subtle studio dB gridlines
     ctx.strokeStyle = "rgba(255,255,255,0.05)";
     ctx.lineWidth = 1;
-    for (let i = 1; i < 4; i++) {
+    for (let i = 0; i <= 4; i++) {
       const y = padTop + (usableH * i) / 4;
       ctx.beginPath(); ctx.moveTo(padX, y); ctx.lineTo(W - padX, y); ctx.stroke();
     }
-    ctx.beginPath(); ctx.moveTo(padX, baseY); ctx.lineTo(W - padX, baseY); ctx.stroke();
 
     if (harmEditMode) {
       const bars = harmEditPart === 0 ? barsA : barsB;
@@ -781,57 +914,172 @@
       return;
     }
 
-    // Subtle log-frequency vertical gridlines & markers (100 Hz, 1 kHz, 10 kHz over 20 Hz..20 kHz)
+    // Log-frequency grid & axis markers across 20 Hz..20 kHz
     const invLogRange = 1 / Math.log2(1000);
     ctx.font = "9px monospace";
     ctx.textAlign = "center";
-    for (const [hz, label] of [[100, "100"], [1000, "1k"], [10000, "10k"]]) {
+    for (const [hz, label] of [[50, "50"], [100, "100"], [500, "500"], [1000, "1k"], [5000, "5k"], [10000, "10k"]]) {
       const gx = padX + (Math.log2(hz / 20) * invLogRange) * usableW;
-      ctx.strokeStyle = "rgba(255,255,255,0.05)";
+      ctx.strokeStyle = "rgba(255,255,255,0.055)";
       ctx.beginPath(); ctx.moveTo(gx, padTop); ctx.lineTo(gx, baseY); ctx.stroke();
-      ctx.fillStyle = "rgba(127, 140, 168, 0.72)";
+      ctx.fillStyle = "rgba(127, 140, 168, 0.78)";
       ctx.fillText(label, gx, H - 3);
     }
 
-    if (!latestTelemetry) return;
-    const sA = latestTelemetry.specA || [];
-    const sB = latestTelemetry.specB || [];
-    const fA = latestTelemetry.freqA || [];
-    const fB = latestTelemetry.freqB || [];
-    const flt = latestTelemetry.filt || [];
-    const n = Math.max(sA.length, sB.length);
+    if (latestTelemetry) {
+      const sA = latestTelemetry.specA || [];
+      const sB = latestTelemetry.specB || [];
+      const fA = latestTelemetry.freqA || [];
+      const fB = latestTelemetry.freqB || [];
+      const flt = latestTelemetry.filt || [];
+      const n = Math.max(sA.length, sB.length);
 
-    for (let i = 0; i < n; i++) {
-      const vA = sA[i] || 0;
-      if (vA > 0.003) {
-        const normA = (fA.length === sA.length) ? fA[i] : (i / Math.max(1, n - 1));
-        const clampedA = Math.max(0, Math.min(1, normA));
-        const xA = Math.min(W - padX - 2, padX + clampedA * usableW);
-        const aH = vA * usableH;
-        ctx.fillStyle = "rgba(34,211,238,0.78)";
-        ctx.fillRect(xA, baseY - aH, 2.0, aH);
+      // Build smoothed per-pixel spectral glow envelopes
+      const bins = Math.max(16, Math.round(usableW));
+      let envA = new Float32Array(bins);
+      let envB = new Float32Array(bins);
+
+      const splat = (env, norm, amp) => {
+        const c = Math.max(0, Math.min(bins - 1, Math.round(norm * (bins - 1))));
+        env[c] = Math.max(env[c], amp);
+        if (c > 0) env[c - 1] = Math.max(env[c - 1], amp * 0.65);
+        if (c + 1 < bins) env[c + 1] = Math.max(env[c + 1], amp * 0.65);
+        if (c > 1) env[c - 2] = Math.max(env[c - 2], amp * 0.30);
+        if (c + 2 < bins) env[c + 2] = Math.max(env[c + 2], amp * 0.30);
+      };
+
+      const ptsA = [], ptsB = [];
+      for (let i = 0; i < n; i++) {
+        const vA = sA[i] || 0;
+        if (vA > 0.002) {
+          const normA = Math.max(0, Math.min(1, (fA.length === sA.length) ? fA[i] : (i / Math.max(1, n - 1))));
+          splat(envA, normA, vA);
+          ptsA.push([normA, vA]);
+        }
+        const vB = sB[i] || 0;
+        if (vB > 0.002) {
+          const normB = Math.max(0, Math.min(1, (fB.length === sB.length) ? fB[i] : (i / Math.max(1, n - 1))));
+          splat(envB, normB, vB);
+          ptsB.push([normB, vB]);
+        }
       }
-      const vB = sB[i] || 0;
-      if (vB > 0.003) {
-        const normB = (fB.length === sB.length) ? fB[i] : (i / Math.max(1, n - 1));
-        const clampedB = Math.max(0, Math.min(1, normB));
-        const xB = Math.min(W - padX - 2, padX + clampedB * usableW + 0.8);
-        const bH = vB * usableH;
-        ctx.fillStyle = "rgba(244,63,142,0.58)";
-        ctx.fillRect(xB, baseY - bH, 2.0, bH);
+
+      const smoothEnv = (arr) => {
+        for (let pass = 0; pass < 2; pass++) {
+          const out = new Float32Array(bins);
+          for (let j = 0; j < bins; j++) {
+            const l = j > 0 ? arr[j - 1] : 0;
+            const m = arr[j];
+            const r = j + 1 < bins ? arr[j + 1] : 0;
+            out[j] = Math.max(m * 0.65, 0.25 * l + 0.5 * m + 0.25 * r);
+          }
+          arr = out;
+        }
+        return arr;
+      };
+      envA = smoothEnv(envA);
+      envB = smoothEnv(envB);
+
+      const drawGlow = (env, r, g, b, fillAlpha, lineAlpha) => {
+        let hasSignal = false;
+        for (let j = 0; j < bins; j++) { if (env[j] > 0.003) { hasSignal = true; break; } }
+        if (!hasSignal) return;
+        const grad = ctx.createLinearGradient(0, padTop, 0, baseY);
+        grad.addColorStop(0, `rgba(${r},${g},${b},${fillAlpha})`);
+        grad.addColorStop(1, `rgba(${r},${g},${b},0.01)`);
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(padX, baseY);
+        for (let j = 0; j < bins; j++) {
+          const px = padX + (j / (bins - 1)) * usableW;
+          const py = baseY - Math.min(1, env[j]) * usableH;
+          ctx.lineTo(px, py);
+        }
+        ctx.lineTo(padX + usableW, baseY);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = `rgba(${r},${g},${b},${lineAlpha})`;
+        ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        for (let j = 0; j < bins; j++) {
+          const px = padX + (j / (bins - 1)) * usableW;
+          const py = baseY - Math.min(1, env[j]) * usableH;
+          if (j === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+      };
+
+      drawGlow(envB, 244, 63, 142, 0.20, 0.45);
+      drawGlow(envA, 34, 211, 238, 0.25, 0.55);
+
+      // Luminous partial stems + peak tips
+      for (const [normB, vB] of ptsB) {
+        if (vB <= 0.003) continue;
+        const xB = Math.min(W - padX - 2.2, padX + normB * usableW + 0.7);
+        const bH = Math.min(usableH, vB * usableH);
+        ctx.fillStyle = "rgba(244,63,142,0.52)";
+        ctx.fillRect(xB, baseY - bH, 1.8, bH);
+        ctx.fillStyle = "rgba(251,113,173,0.92)";
+        ctx.fillRect(xB - 0.2, baseY - bH, 2.2, Math.min(2.4, bH));
+      }
+      for (const [normA, vA] of ptsA) {
+        if (vA <= 0.003) continue;
+        const xA = Math.min(W - padX - 2.2, padX + normA * usableW);
+        const aH = Math.min(usableH, vA * usableH);
+        ctx.fillStyle = "rgba(34,211,238,0.72)";
+        ctx.fillRect(xA, baseY - aH, 1.8, aH);
+        ctx.fillStyle = "#a5f3fc";
+        ctx.fillRect(xA - 0.2, baseY - aH, 2.2, Math.min(2.4, aH));
+      }
+
+      // Shaded Amber Filter + EQ curve
+      if (flt.length > 1) {
+        const fltGrad = ctx.createLinearGradient(0, padTop, 0, baseY);
+        fltGrad.addColorStop(0, "rgba(245,158,11,0.12)");
+        fltGrad.addColorStop(1, "rgba(245,158,11,0.00)");
+        ctx.fillStyle = fltGrad;
+        ctx.beginPath();
+        ctx.moveTo(padX, baseY);
+        flt.forEach((v, i) => {
+          const px = padX + (i / (flt.length - 1)) * usableW;
+          const py = baseY - Math.max(0, Math.min(1, v)) * usableH;
+          ctx.lineTo(px, py);
+        });
+        ctx.lineTo(padX + usableW, baseY);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = ACCENT_HEX.amber;
+        ctx.lineWidth = 2.0;
+        ctx.beginPath();
+        flt.forEach((v, i) => {
+          const px = padX + (i / (flt.length - 1)) * usableW;
+          const py = baseY - Math.max(0, Math.min(1, v)) * usableH;
+          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        });
+        ctx.stroke();
       }
     }
 
-    if (flt.length > 1) {
-      ctx.strokeStyle = ACCENT_HEX.amber;
-      ctx.lineWidth = 1.8;
-      ctx.beginPath();
-      flt.forEach((v, i) => {
-        const px = padX + (i / (flt.length - 1)) * usableW;
-        const py = baseY - Math.max(0, Math.min(1, v)) * usableH;
-        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-      });
-      ctx.stroke();
+    // Top-right HUD legend & live fundamental pitch
+    const hudY = padTop + 9;
+    let hx = W - padX - 4;
+    ctx.font = "9px monospace";
+    ctx.textAlign = "right";
+    if (latestTelemetry && latestTelemetry.voiceActive && latestTelemetry.pitchHz) {
+      const pTxt = `${latestTelemetry.pitchHz.toFixed(1)}Hz`;
+      ctx.fillStyle = "#e2e8f0";
+      ctx.fillText(pTxt, hx, hudY);
+      hx -= ctx.measureText(pTxt).width + 8;
+    }
+    for (const [lbl, col] of [["FLT", ACCENT_HEX.amber], ["B", ACCENT_HEX.magenta], ["A", ACCENT_HEX.cyan]]) {
+      ctx.fillStyle = "rgba(148,163,184,0.85)";
+      ctx.fillText(lbl, hx, hudY);
+      hx -= ctx.measureText(lbl).width + 3;
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(hx - 2.5, hudY - 3, 2.3, 0, Math.PI * 2); ctx.fill();
+      hx -= 11;
     }
   }
 
@@ -944,8 +1192,8 @@
       if (!harmEditMode) return;
       const paintBar = (ev) => {
         const r = specCvs.getBoundingClientRect();
-        const barIdx = Math.max(0, Math.min(63, Math.floor(((ev.clientX - r.left - 6) / Math.max(1, r.width - 12)) * 64)));
-        const val = Math.max(0, Math.min(1, 1 - (ev.clientY - r.top - 6) / Math.max(1, r.height - 21)));
+        const barIdx = Math.max(0, Math.min(63, Math.floor(((ev.clientX - r.left - 8) / Math.max(1, r.width - 16)) * 64)));
+        const val = Math.max(0, Math.min(1, 1 - (ev.clientY - r.top - 8) / Math.max(1, r.height - 24)));
         (harmEditPart === 0 ? barsA : barsB)[barIdx] = val;
         send("setHarmonicBar", { part: harmEditPart, idx: barIdx, val });
         drawSpectrumOrHarmonics();
@@ -984,6 +1232,7 @@
       b.addEventListener("click", () => {
         activeArtTarget = parseInt(b.dataset.target, 10);
         document.querySelectorAll(".art-target").forEach(x => x.classList.toggle("active", x === b));
+        drawAllSplines();
       });
     });
     document.getElementById("artPresetSelect").addEventListener("change", (e) => {
@@ -1097,6 +1346,7 @@
       }
     }
     drawSpectrumOrHarmonics();
+    drawAllSplines();
   };
 
   window.updateTelemetry = (t) => {
