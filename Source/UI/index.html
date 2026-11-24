@@ -60,13 +60,13 @@
             <!-- Card 01: Field 1 (Part A) -->
             <div class="module-card accent-cyan">
               <div class="card-header">
-                <span class="card-title">01 // FREQUENCY FIELD 1 (PART A)</span>
+                <span class="card-title">01 // FIELD 1 (PART A)</span>
                 <div class="card-actions">
                   <select id="waveASelect" class="mini-select cyan"></select>
                   <button class="mini-btn" id="toggleHarmEditBtn">HARMONICS</button>
                 </div>
               </div>
-              <div class="knob-grid cols-6">
+              <div class="knob-grid cols-6-select">
                 <div class="knob-slot" data-param="oscAOct" data-label="OCT" data-accent="cyan"></div>
                 <div class="knob-slot" data-param="oscASemi" data-label="SEMI" data-accent="cyan"></div>
                 <div class="knob-slot" data-param="oscAFine" data-label="FINE" data-accent="cyan"></div>
@@ -88,13 +88,13 @@
             <!-- Card 02: Field 2 (Part B) -->
             <div class="module-card accent-magenta">
               <div class="card-header">
-                <span class="card-title">02 // FREQUENCY FIELD 2 (PART B)</span>
+                <span class="card-title">02 // FIELD 2 (PART B)</span>
                 <div class="card-actions">
                   <select id="waveBSelect" class="mini-select magenta"></select>
                   <button class="mini-btn" id="copyABBtn" title="Copy Part A Harmonics to B">A&rarr;B</button>
                 </div>
               </div>
-              <div class="knob-grid cols-6">
+              <div class="knob-grid cols-6-select">
                 <div class="knob-slot" data-param="oscBOct" data-label="OCT" data-accent="magenta"></div>
                 <div class="knob-slot" data-param="oscBSemi" data-label="SEMI" data-accent="magenta"></div>
                 <div class="knob-slot" data-param="oscBFine" data-label="FINE" data-accent="magenta"></div>
@@ -112,6 +112,27 @@
                 </div>
               </div>
             </div>
+
+            <!-- Card 07: AHDSR Envelope, Layer Mix & Master -->
+            <div class="module-card accent-emerald">
+              <div class="card-header">
+                <span class="card-title">07 // AHDSR ENVELOPE, LAYER &amp; MASTER</span>
+              </div>
+              <div class="knob-grid cols-6">
+                <div class="knob-slot" data-param="envAttack" data-label="ATK" data-accent="amber"></div>
+                <div class="knob-slot" data-param="envHold" data-label="HOLD" data-accent="amber"></div>
+                <div class="knob-slot" data-param="envDecay" data-label="DEC" data-accent="amber"></div>
+                <div class="knob-slot" data-param="envSustain" data-label="SUS" data-accent="amber"></div>
+                <div class="knob-slot" data-param="envRelease" data-label="REL" data-accent="amber"></div>
+                <div class="knob-slot" data-param="masterGainDb" data-label="GAIN" data-accent="emerald"></div>
+                <div class="knob-slot" data-param="velLink" data-label="VEL" data-accent="emerald"></div>
+                <div class="knob-slot" data-param="partPan" data-label="PAN" data-accent="cyan"></div>
+                <div class="knob-slot" data-param="strumTime" data-label="STRUM" data-accent="amber"></div>
+                <div class="knob-slot" data-param="strumTension" data-label="SLOPE" data-accent="amber"></div>
+                <div class="knob-slot" data-param="limiterThreshDb" data-label="LIM" data-accent="emerald"></div>
+                <div class="select-slot"><label>LIMITER</label><button class="toggle-btn emerald" data-param-toggle="limiterEnable">LIMIT</button></div>
+              </div>
+            </div>
           </div>
 
           <!-- Center Column: Prism, Voicing/Unison, Dual Filter, Noise -->
@@ -126,7 +147,7 @@
                     <button class="toggle-btn amber" data-param-toggle="pluckEnable">PLUCK</button>
                   </div>
                 </div>
-                <div class="knob-grid cols-4">
+                <div class="knob-grid prism-knob-grid">
                   <div class="knob-slot" data-param="prismAmount" data-label="PRISM" data-accent="magenta"></div>
                   <div class="select-slot"><label>MODE</label><select data-param-select="prismMode" class="mini-select magenta"></select></div>
                   <div class="knob-slot" data-param="harmShift" data-label="SHIFT" data-accent="magenta"></div>
@@ -146,7 +167,7 @@
                     <button class="toggle-btn cyan" data-param-toggle="autoGlide">GLIDE</button>
                   </div>
                 </div>
-                <div class="knob-grid cols-4">
+                <div class="knob-grid voice-knob-grid">
                   <div class="select-slot"><label>VOICE</label><select data-param-select="voicingMode" class="mini-select cyan"></select></div>
                   <div class="knob-slot" data-param="maxVoices" data-label="LIMIT" data-accent="cyan"></div>
                   <div class="knob-slot" data-param="portaTime" data-label="PORTA" data-accent="cyan"></div>
@@ -165,7 +186,7 @@
             <div class="module-row filter-noise-row">
               <div class="module-card accent-amber flex-3">
                 <div class="card-header">
-                  <span class="card-title">05 // DUAL SPECTRAL FILTER &amp; 4x DRIVE</span>
+                  <span class="card-title">05 // DUAL FILTER &amp; 4x DRIVE</span>
                   <div class="card-actions">
                     <select id="filterSubSelect" class="mini-select amber"></select>
                     <button class="toggle-btn amber" data-param-toggle="filter1Enable">F1</button>
@@ -173,7 +194,7 @@
                   </div>
                 </div>
                 <div class="filter-subrows">
-                  <div class="knob-grid cols-6">
+                  <div class="filter-knob-grid">
                     <div class="select-slot"><label>F1 TYPE</label><select data-param-select="filter1Type" class="mini-select amber"></select></div>
                     <div class="knob-slot" data-param="filter1Cutoff" data-label="CUT 1" data-accent="amber"></div>
                     <div class="knob-slot" data-param="filter1Res" data-label="RES 1" data-accent="amber"></div>
@@ -181,7 +202,7 @@
                     <div class="knob-slot" data-param="filter1Width" data-label="WID 1" data-accent="amber"></div>
                     <div class="knob-slot" data-param="filterRouting" data-label="S/PAR" data-accent="magenta"></div>
                   </div>
-                  <div class="knob-grid cols-6">
+                  <div class="filter-knob-grid">
                     <div class="select-slot"><label>F2 TYPE</label><select data-param-select="filter2Type" class="mini-select cyan"></select></div>
                     <div class="knob-slot" data-param="filter2Cutoff" data-label="CUT 2" data-accent="cyan"></div>
                     <div class="knob-slot" data-param="filter2Res" data-label="RES 2" data-accent="cyan"></div>
@@ -233,30 +254,7 @@
 
         <!-- Bottom Deck -->
         <div class="synth-bottom-deck">
-          <!-- Bottom Left: Layering & Strum -->
-          <div class="module-card accent-emerald bottom-left">
-            <div class="card-header">
-              <span class="card-title">LAYER MIX &amp; STRUM</span>
-            </div>
-            <div class="knob-grid cols-4">
-              <div class="knob-slot" data-param="velLink" data-label="VEL" data-accent="emerald"></div>
-              <div class="knob-slot" data-param="partPan" data-label="PAN" data-accent="cyan"></div>
-              <div class="knob-slot" data-param="strumTime" data-label="STRUM" data-accent="amber"></div>
-              <div class="knob-slot" data-param="strumTension" data-label="SLOPE" data-accent="amber"></div>
-            </div>
-            <div class="knob-grid cols-4 ahdsr-row">
-              <div class="knob-slot" data-param="envAttack" data-label="ATK" data-accent="amber"></div>
-              <div class="knob-slot" data-param="envHold" data-label="HOLD" data-accent="amber"></div>
-              <div class="knob-slot" data-param="envDecay" data-label="DEC" data-accent="amber"></div>
-              <div class="knob-slot" data-param="envSustain" data-label="SUS" data-accent="amber"></div>
-              <div class="knob-slot" data-param="envRelease" data-label="REL" data-accent="amber"></div>
-              <div class="knob-slot" data-param="masterGainDb" data-label="GAIN" data-accent="emerald"></div>
-              <div class="knob-slot" data-param="limiterThreshDb" data-label="LIM" data-accent="emerald"></div>
-              <div class="select-slot"><button class="toggle-btn emerald" data-param-toggle="limiterEnable">LIMIT</button></div>
-            </div>
-          </div>
-
-          <!-- Bottom Center: Articulator & Arp -->
+          <!-- Bottom Left/Center: Articulator & Arp -->
           <div class="module-card accent-cyan bottom-center">
             <div class="card-header">
               <div class="card-actions">

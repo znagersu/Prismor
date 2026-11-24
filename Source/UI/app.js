@@ -279,9 +279,11 @@
   }
 
   // CNC-machined black anodized hardware rotary knob SVG (NO outer solid colored rings!)
+  let knobIdCounter = 0;
   function createKnobElement(container, paramId, labelText, accentName, sizePx) {
     const meta = PARAM_META[paramId] || { min: 0, max: 1, def: 0 };
     const accent = ACCENT_HEX[accentName] || ACCENT_HEX.cyan;
+    const kid = ++knobIdCounter;
 
     const wrap = document.createElement("div");
     wrap.className = "knob-wrap";
@@ -292,48 +294,84 @@
     svg.setAttribute("height", String(sizePx));
     svg.setAttribute("viewBox", "0 0 60 60");
 
+    // 3D CNC brushed black anodized gradients
+    const defs = document.createElementNS(ns, "defs");
+    const capGrad = document.createElementNS(ns, "linearGradient");
+    capGrad.setAttribute("id", `capGrad_${kid}`);
+    capGrad.setAttribute("x1", "0%"); capGrad.setAttribute("y1", "0%");
+    capGrad.setAttribute("x2", "0%"); capGrad.setAttribute("y2", "100%");
+    [
+      ["0%", "#2f384c"],
+      ["55%", "#191e2b"],
+      ["100%", "#10141e"]
+    ].forEach(([off, col]) => {
+      const s = document.createElementNS(ns, "stop");
+      s.setAttribute("offset", off);
+      s.setAttribute("stop-color", col);
+      capGrad.appendChild(s);
+    });
+    defs.appendChild(capGrad);
+
+    const innerGrad = document.createElementNS(ns, "radialGradient");
+    innerGrad.setAttribute("id", `innerGrad_${kid}`);
+    innerGrad.setAttribute("cx", "45%"); innerGrad.setAttribute("cy", "38%"); innerGrad.setAttribute("r", "60%");
+    [
+      ["0%", "#202736"],
+      ["100%", "#0f131c"]
+    ].forEach(([off, col]) => {
+      const s = document.createElementNS(ns, "stop");
+      s.setAttribute("offset", off);
+      s.setAttribute("stop-color", col);
+      innerGrad.appendChild(s);
+    });
+    defs.appendChild(innerGrad);
+    svg.appendChild(defs);
+
     // Micro-ticks around 270 deg sweep
     for (let i = 0; i <= 12; i++) {
       const ang = (-225 + (i / 12) * 270) * (Math.PI / 180);
-      const r1 = 26, r2 = (i === 0 || i === 6 || i === 12) ? 29.2 : 28.2;
+      const r1 = 26.2, r2 = (i === 0 || i === 6 || i === 12) ? 29.6 : 28.6;
       const tick = document.createElementNS(ns, "line");
       tick.setAttribute("x1", (30 + Math.cos(ang) * r1).toFixed(2));
       tick.setAttribute("y1", (30 + Math.sin(ang) * r1).toFixed(2));
       tick.setAttribute("x2", (30 + Math.cos(ang) * r2).toFixed(2));
       tick.setAttribute("y2", (30 + Math.sin(ang) * r2).toFixed(2));
-      tick.setAttribute("stroke", (meta.bipolar && i === 6) ? accent : "#475569");
-      tick.setAttribute("stroke-width", (i === 0 || i === 6 || i === 12) ? "1.4" : "0.9");
+      tick.setAttribute("stroke", (meta.bipolar && i === 6) ? accent : "#64748b");
+      tick.setAttribute("stroke-width", (i === 0 || i === 6 || i === 12) ? "1.5" : "1.0");
       svg.appendChild(tick);
     }
 
     // Outer recessed bevel shadow (dark metallic anodized aluminum, NO solid colored ring)
     const rim = document.createElementNS(ns, "circle");
-    rim.setAttribute("cx", "30"); rim.setAttribute("cy", "30"); rim.setAttribute("r", "22");
-    rim.setAttribute("fill", "#0b0e14");
-    rim.setAttribute("stroke", "#2a3244");
+    rim.setAttribute("cx", "30"); rim.setAttribute("cy", "30"); rim.setAttribute("r", "24.0");
+    rim.setAttribute("fill", "#07090e");
+    rim.setAttribute("stroke", "#2f394e");
     rim.setAttribute("stroke-width", "1.2");
     svg.appendChild(rim);
 
     // CNC machined cap
     const cap = document.createElementNS(ns, "circle");
-    cap.setAttribute("cx", "30"); cap.setAttribute("cy", "30"); cap.setAttribute("r", "18.5");
-    cap.setAttribute("fill", "#1a1f2b");
-    cap.setAttribute("stroke", "#394359");
-    cap.setAttribute("stroke-width", "1");
+    cap.setAttribute("cx", "30"); cap.setAttribute("cy", "30"); cap.setAttribute("r", "21.2");
+    cap.setAttribute("fill", `url(#capGrad_${kid})`);
+    cap.setAttribute("stroke", "#47546e");
+    cap.setAttribute("stroke-width", "1.1");
     svg.appendChild(cap);
 
     const inner = document.createElementNS(ns, "circle");
-    inner.setAttribute("cx", "30"); inner.setAttribute("cy", "30"); inner.setAttribute("r", "14.5");
-    inner.setAttribute("fill", "#12151e");
+    inner.setAttribute("cx", "30"); inner.setAttribute("cy", "30"); inner.setAttribute("r", "16.6");
+    inner.setAttribute("fill", `url(#innerGrad_${kid})`);
+    inner.setAttribute("stroke", "#2b3347");
+    inner.setAttribute("stroke-width", "0.7");
     svg.appendChild(inner);
 
     // Rotating glowing indicator pill
     const pillGroup = document.createElementNS(ns, "g");
     const pill = document.createElementNS(ns, "rect");
-    pill.setAttribute("x", "28.4"); pill.setAttribute("y", "13.5");
-    pill.setAttribute("width", "3.2"); pill.setAttribute("height", "9.5");
-    pill.setAttribute("rx", "1.6");
+    pill.setAttribute("x", "28.1"); pill.setAttribute("y", "10.8");
+    pill.setAttribute("width", "3.8"); pill.setAttribute("height", "10.8");
+    pill.setAttribute("rx", "1.9");
     pill.setAttribute("fill", accent);
+    pill.setAttribute("style", `filter: drop-shadow(0 0 2.5px ${accent})`);
     pillGroup.appendChild(pill);
     svg.appendChild(pillGroup);
 
@@ -398,10 +436,10 @@
 
   function mountAllControls() {
     document.querySelectorAll(".knob-slot").forEach(el => {
-      createKnobElement(el, el.dataset.param, el.dataset.label, el.dataset.accent, 34);
+      createKnobElement(el, el.dataset.param, el.dataset.label, el.dataset.accent, 44);
     });
     document.querySelectorAll(".mini-knob-slot").forEach(el => {
-      createKnobElement(el, el.dataset.param, el.dataset.label, el.dataset.accent, 28);
+      createKnobElement(el, el.dataset.param, el.dataset.label, el.dataset.accent, 30);
     });
 
     document.querySelectorAll("select[data-param-select]").forEach(sel => {
@@ -529,7 +567,7 @@
       for (const [kId, kLbl, kAcc] of m.knobs) {
         const slotDiv = document.createElement("div");
         slotDiv.className = "knob-slot";
-        createKnobElement(slotDiv, kId, kLbl, kAcc, 32);
+        createKnobElement(slotDiv, kId, kLbl, kAcc, 42);
         kGrid.appendChild(slotDiv);
       }
       card.appendChild(kGrid);
